@@ -1,0 +1,9 @@
+# osmnx 1.x API is used (graph_from_bbox, features_from_bbox). Stay on 1.9.x; 2.x changes the API.
+# osmnx 1.9.4 needs Python < 3.13. Pinning >=1.9,<2 lets pip pick a version that installs on 3.13.
+osmnx>=1.9,<2
+networkx
+numpy
+scipy
+pandas
+requests
+pytest
