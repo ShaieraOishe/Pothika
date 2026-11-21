@@ -6,7 +6,11 @@ import { readFileSync } from 'node:fs';
 import * as G from '../../web/js/graph.js';
 import * as R from '../../web/js/reports.js';
 
-const data = JSON.parse(readFileSync(new URL('../../web/data/area.json', import.meta.url)));
+import { existsSync } from 'node:fs';
+const dataPath = existsSync(new URL('../../web/data/area.pilot.json', import.meta.url))
+  ? '../../web/data/area.pilot.json'
+  : '../../web/data/area.json';
+const data = JSON.parse(readFileSync(new URL(dataPath, import.meta.url)));
 const ref = JSON.parse(readFileSync(new URL('./pyref.json', import.meta.url)));
 const g = G.buildGraph(data);
 

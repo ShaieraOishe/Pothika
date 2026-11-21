@@ -16,12 +16,13 @@ const S = {
   night: isNightNow(),
   origin: null, dest: null,            // {node, ll:[lon,lat]}
   mode: 'plan',                        // 'plan' | 'report'
+  commute: 'walk',                     // 'walk' | 'rickshaw' | 'metro'
   groups: [], selected: 0, error: null,
-  layers: { risk: false, police: true, hospital: false },
+  layers: { risk: false, heatmap: true, police: true, hospital: false, metro: true },
   state: 'loading',                    // 'loading' | 'ready' | 'failed'
   locating: false, pending: null,      // pending: street hit while the report dialog is open
 };
-let g, map, tiles, canvas, routeLayer, reportLayer, hlLayer;
+let g, map, tiles, canvas, routeLayer, reportLayer, hlLayer, cautionHeatLayer, metroLayer;
 let baseLines = [], poi = {}, pins = { o: null, d: null }, sIndex = [];
 const tr = (k, v) => t(S.lang, k, v);
 const whenWord = () => tr(S.night ? 'when.night' : 'when.day');
@@ -93,6 +94,8 @@ function renderRoutes() {
   box.hidden = !S.groups.length;
   if (!S.groups.length) return;
   $('#no-alt').hidden = !(S.groups.length === 1 && S.groups[0].names.length === NAME_ORDER.length);
+  const pill = $('#route-count-pill');
+  if (pill) pill.textContent = S.lang === 'bn' ? `${fmtNum('bn', S.groups.length)}টি বিকল্প পথ` : `${S.groups.length} Route Options`;
 
   S.groups.forEach((gr, i) => {
     const sel = i === S.selected, name = styleName(gr);
@@ -101,19 +104,80 @@ function renderRoutes() {
     li.className = 'route' + (sel ? ' is-sel' : '');
     li.style.setProperty('--c', `var(${VAR[name]})`);
     const hi = pct(gr.high_risk_share);
+    const score = Math.max(20, Math.min(99, Math.round((1 - gr.mean_risk) * 100)));
+    const isSafest = gr.names.includes('safest');
+    const badgeText = isSafest ? tr('route.recommended') : tr('route.estimate');
+    const badgeCls = isSafest ? 'badge badge-safest' : 'badge';
+
+    // Commute-specific metric pills (Google/Apple Maps style)
+    let commutePill = '';
+    if (S.commute === 'rickshaw') {
+      const rMin = Math.max(3, Math.round(gr.length_m / 200));
+      const fareMin = Math.max(30, Math.round(gr.length_m / 100) * 3);
+      const fareMax = Math.max(50, Math.round(gr.length_m / 100) * 4.5);
+      const fareStr = S.lang === 'bn' ? `${fmtNum('bn', fareMin)}-${fmtNum('bn', fareMax)} ৳` : `${fareMin}-${fareMax} BDT`;
+      commutePill = `<span class="meta-pill">🛺 ${fmtDist(gr.length_m)}</span>
+                     <span class="meta-pill">⏱ ~${S.lang === 'bn' ? fmtNum('bn', rMin) : rMin} min</span>
+                     <span class="meta-pill">৳ ${fareStr}</span>`;
+    } else if (S.commute === 'metro') {
+      const mMin = Math.max(5, Math.round(gr.length_m / 350));
+      commutePill = `<span class="meta-pill">🚇 মেট্রোরেল করিডোর</span>
+                     <span class="meta-pill">⏱ ~${S.lang === 'bn' ? fmtNum('bn', mMin) : mMin} min</span>`;
+    } else {
+      commutePill = `<span class="meta-pill">🚶 ${fmtDist(gr.length_m)}</span>
+                     <span class="meta-pill">⏱ ${tr('route.min', { n: minutes(gr.length_m) })}</span>`;
+    }
+
+    // Safety Alert Summary Banner
+    let cautionNotice = '';
+    if (hi >= 20) {
+      cautionNotice = `<div class="route-caution-banner cb-danger">
+        <span class="cb-ico">⚠️</span>
+        <span><strong>${S.lang === 'bn' ? 'সতর্কতা জোন অতিক্রম:' : 'Caution Zone Cross:'}</strong> ${S.lang === 'bn' ? `এই পথের প্রায় ${hi}% অংশে কম আলো বা সরু গলি রয়েছে। নির্জন সময়ে রিকশা বা সিএনজি ব্যবহার বাঞ্ছনীয়।` : `About ${hi}% of this route passes through low-lit or narrow stretches.`}</span>
+      </div>`;
+    } else if (hi > 5) {
+      cautionNotice = `<div class="route-caution-banner cb-warn">
+        <span class="cb-ico">ℹ️</span>
+        <span>${S.lang === 'bn' ? 'মাঝারি সতর্ক থাকুন: প্রধান সড়ক ধরে হাঁটুন এবং নির্জন শাখা গলি পরিহার করুন।' : 'Stay alert: Stick to the main well-lit corridor.'}</span>
+      </div>`;
+    } else {
+      cautionNotice = `<div class="route-caution-banner cb-safe">
+        <span class="cb-ico">🛡️</span>
+        <span>${S.lang === 'bn' ? 'নিরাপদ গ্রিন করিডোর: সিসিটিভি, উজ্জ্বল বাতি ও পুলিশ সহায়তা কেন্দ্র সংলগ্ন।' : 'Safe Green Corridor: CCTV, street lighting & police presence.'}</span>
+      </div>`;
+    }
+
     li.innerHTML = `
       <button type="button" class="route-btn" aria-pressed="${sel}" data-i="${i}">
         ${sampleSVG(name)}
         <span>
           <span class="route-name">${names.join(', ')}${gr.names.length > 1 ? ` <span class="route-same">(${tr('route.same')})</span>` : ''}</span>
-          <span class="route-meta"><span>${fmtDist(gr.length_m)}</span><span>${tr('route.min', { n: minutes(gr.length_m) })}</span><span class="badge">${tr('route.estimate')}</span></span>
+          <span class="route-meta">
+            ${commutePill}
+            <span class="${badgeCls}">${badgeText}</span>
+          </span>
         </span>
+        <div class="safety-score-gauge">
+          <span class="score-num" style="color:var(${VAR[name]});">${score}%</span>
+          <span class="score-label">${S.lang === 'bn' ? 'স্কোর' : 'SCORE'}</span>
+        </div>
       </button>
       ${sel ? `<div class="route-detail">
+        ${cautionNotice}
         <div class="meter" role="img" aria-label="${tr('route.hiShare', { n: hi })}"><span style="width:${Math.max(2, hi)}%"></span></div>
         <div class="meter-label">${tr('route.hiShare', { n: hi })}</div>
         <p class="why">${tr('why')}</p>
         <ul class="reasons">${reasonsFor(gr).map((r) => `<li>${r}</li>`).join('')}</ul>
+        <div class="route-actions-row">
+          <button type="button" class="btn btn-primary btn-start-walk" data-walk-idx="${i}">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span>${tr('nav.start_walk')}</span>
+          </button>
+          <button type="button" class="btn-share-mini" data-share-idx="${i}">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            <span>${tr('route.share')}</span>
+          </button>
+        </div>
         <p class="caveat">${tr('r.caveat')}</p></div>` : ''}`;
     ul.appendChild(li);
   });
@@ -154,8 +218,8 @@ function paintNetwork() {
   const ramp = [1, 2, 3, 4, 5].map((i) => cssVar('--rk' + i)), base = cssVar('--base-net');
   const cls = (r) => (r < 0.45 ? 0 : r < 0.55 ? 1 : r < 0.62 ? 2 : r < 0.67 ? 3 : 4);
   for (const { line, e } of baseLines) {
-    line.setStyle(S.layers.risk ? { color: ramp[cls(risk[e.i])], weight: 3.5, opacity: 0.95 }
-                                : { color: base, weight: 1.6, opacity: 0.75 });
+    line.setStyle(S.layers.risk ? { color: ramp[cls(risk[e.i])], weight: 3.5, opacity: 0.92 }
+                                : { color: base, weight: 1, opacity: 0 });
   }
 }
 
@@ -210,6 +274,115 @@ function drawReports() {
   for (const r of R.getReports()) {
     if (r.dv !== g.meta.generated || !r.loc) continue;
     L.marker([r.loc[1], r.loc[0]], { icon: mkIcon('', 26, `mk k-${r.kind}`), keyboard: false, interactive: false }).addTo(reportLayer);
+  }
+}
+
+function drawCautionHeatmap() {
+  if (!cautionHeatLayer) return;
+  cautionHeatLayer.clearLayers();
+  if (!g || !g.zones) return;
+  for (const z of g.zones) {
+    const isHigh = z.level >= 3;
+    const isMod = z.level === 2;
+    const strokeColor = isHigh ? '#e11d48' : (isMod ? '#d97706' : '#059669');
+    const fillColor = isHigh ? '#f43f5e' : (isMod ? '#f59e0b' : '#10b981');
+    const badgeCls = isHigh ? 'cb-level-high' : (isMod ? 'cb-level-mod' : 'cb-level-safe');
+    const badgeText = isHigh ? (S.lang === 'bn' ? 'উচ্চ সতর্কতা জোন' : 'High Caution Zone') :
+                      (isMod ? (S.lang === 'bn' ? 'মাঝারি সতর্কতা' : 'Moderate Caution') :
+                               (S.lang === 'bn' ? 'নিরাপদ করিডোর' : 'Safe Corridor'));
+    const badgePillCls = isHigh ? 'cp-badge-danger' : (isMod ? 'cp-badge-warn' : 'cp-badge-safe');
+    const name = S.lang === 'bn' && z.name_bn ? z.name_bn : z.name;
+    const ico = isHigh ? '⚠️' : (isMod ? 'ℹ️' : '🛡️');
+
+    const circle = L.circle([z.lat, z.lon], {
+      radius: z.r_m || 800,
+      color: strokeColor,
+      weight: 1.8,
+      dashArray: isHigh ? '5,5' : null,
+      fillColor: fillColor,
+      fillOpacity: isHigh ? 0.22 : (isMod ? 0.17 : 0.14),
+      interactive: true,
+    });
+
+    const marker = L.marker([z.lat, z.lon], {
+      icon: L.divIcon({
+        className: 'caution-div-icon',
+        html: `<div class="caution-badge ${badgeCls}" title="${name}">${ico}</div>`,
+        iconSize: [30, 30],
+        iconAnchor: [15, 15],
+      }),
+      interactive: true,
+    });
+
+    const popupContent = `
+      <div class="cp-card">
+        <div class="cp-header">
+          <h4 class="cp-title">${name}</h4>
+          <span class="cp-badge ${badgePillCls}">${badgeText}</span>
+        </div>
+        <p class="cp-desc">${z.caution}</p>
+        <div class="cp-tip ${!isHigh && !isMod ? 'tip-safe' : ''}">
+          <strong>${S.lang === 'bn' ? '💡 নিরাপত্তা পরামর্শ:' : '💡 Safety Tip:'}</strong> ${z.tip}
+        </div>
+      </div>
+    `;
+
+    circle.bindPopup(popupContent, { className: 'caution-popup' });
+    marker.bindPopup(popupContent, { className: 'caution-popup' });
+
+    circle.addTo(cautionHeatLayer);
+    marker.addTo(cautionHeatLayer);
+  }
+}
+
+function drawMetroStations() {
+  if (!metroLayer) return;
+  metroLayer.clearLayers();
+  if (!g || !g.pois || !g.pois.metro) return;
+  for (const st of g.pois.metro) {
+    const name = S.lang === 'bn' && st.name_bn ? st.name_bn : st.name;
+    const [lon, lat] = st.ll;
+    const marker = L.marker([lat, lon], {
+      icon: L.divIcon({
+        className: 'metro-div-icon',
+        html: `<div class="metro-marker" title="${name}">🚇</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+      }),
+      interactive: true,
+    });
+
+    const popupHtml = `
+      <div class="mp-card">
+        <div class="mp-header">
+          <span style="font-size:18px;">🚇</span>
+          <div>
+            <h4 class="mp-title">${name}</h4>
+            <span class="mp-tag">${S.lang === 'bn' ? 'মেট্রোরেল লাইন ৬ স্টেশন' : 'MRT Line-6 Station'}</span>
+          </div>
+        </div>
+        <div class="mp-details">
+          ${S.lang === 'bn' ? '🛡️ ডেডিকেটেড নারী কামরা, সিসিটিভি নজরদারি ও সার্বক্ষণিক নিরাপত্তা কর্মী বিদ্যমান।' : '🛡️ Dedicated Women\'s Coach, CCTV surveillance & security personnel.'}
+        </div>
+        <button type="button" class="btn-route-to" data-st-lon="${lon}" data-st-lat="${lat}" data-st-name="${name}">
+          <span>${S.lang === 'bn' ? 'এখানে নিরাপদ পথ দেখুন' : 'Get Safe Route Here'}</span>
+        </button>
+      </div>
+    `;
+
+    marker.bindPopup(popupHtml, { className: 'metro-popup' });
+    marker.on('popupopen', () => {
+      const btn = document.querySelector(`.btn-route-to[data-st-name="${name}"]`);
+      if (btn) {
+        btn.addEventListener('click', () => {
+          placePoint('d', lon, lat, { kind: 'street', name: `${name} (Metro)` });
+          map.closePopup();
+          toast(S.lang === 'bn' ? `গন্তব্য সেট হয়েছে: ${name}` : `Destination set: ${name}`);
+        });
+      }
+    });
+
+    marker.addTo(metroLayer);
   }
 }
 
@@ -430,10 +603,195 @@ function onMapClick(ev) {
   else if (!S.dest) placePoint('d', lng, lat);
 }
 
+/* ---------- sharing ---------- */
+function shareRouteSummary(gr) {
+  const targetGr = gr || (S.groups && S.groups[S.selected]);
+  const oName = S.origin ? pointLabel(S.origin) : (S.lang === 'bn' ? 'শুরুর স্থান' : 'Start location');
+  const dName = S.dest ? pointLabel(S.dest) : (S.lang === 'bn' ? 'গন্তব্য স্থান' : 'Destination');
+  const dist = targetGr ? fmtDist(targetGr.length_m) : '';
+  const time = targetGr ? tr('route.min', { n: minutes(targetGr.length_m) }) : '';
+  const score = targetGr ? Math.max(20, Math.min(99, Math.round((1 - targetGr.mean_risk) * 100))) : 85;
+  const text = `🛡️ পথিকা নিরাপদ পথ (Pothika Safe Routes):\n📍 শুরু (From): ${oName}\n🏁 গন্তব্য (To): ${dName}\n🚶 দূরত্ব: ${dist} (~${time})\n🛡️ নিরাপত্তা স্কোর: ${score}%\n\nঢাকার রাস্তায় নারীদের নিরাপদ চলাচলের জন্য পথিকা (Pothika) ব্যবহার করছি।`;
+
+  if (navigator.share) {
+    navigator.share({ title: 'Pothika Safe Walking Route', text }).catch(() => {});
+  } else if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => toast(tr('sos.copied')));
+  } else {
+    toast(tr('sos.copied'));
+  }
+}
+
+/* ---------- live safe walk & safety tools ---------- */
+let fakeCallTimer = null, callSec = 0;
+
+function startSafeWalk(gr) {
+  const g = gr || (S.groups && S.groups[S.selected]);
+  if (!g) return;
+  const oName = S.origin ? pointLabel(S.origin) : 'Dhaka';
+  const dName = S.dest ? pointLabel(S.dest) : 'Destination';
+  const hud = $('#walk-hud');
+  if (hud) {
+    hud.hidden = false;
+    const details = $('#walk-hud-details');
+    if (details) {
+      details.textContent = `${oName} ➔ ${dName} • ${fmtDist(g.length_m)} (~${tr('route.min', { n: minutes(g.length_m) })})`;
+    }
+    $('#sheet').classList.add('collapsed');
+    toast(tr('nav.live_heading'));
+    fitRoutes();
+  }
+}
+
+function endSafeWalk() {
+  const hud = $('#walk-hud');
+  if (hud) hud.hidden = true;
+  $('#sheet').classList.remove('collapsed');
+  toast(S.lang === 'bn' ? 'ধন্যবাদ! আপনি নিরাপদে গন্তব্যে পৌঁছেছেন।' : 'Trip complete! You have arrived safely.');
+}
+
+function openFakeCall() {
+  const dlg = $('#dlg-fake-call');
+  if (!dlg) return;
+  $('#fake-call-active-ui').hidden = true;
+  $('#fake-call-actions').hidden = false;
+  $('#fake-call-status').textContent = tr('nav.fake_ringing');
+  clearInterval(fakeCallTimer);
+  callSec = 0;
+  dlg.showModal();
+}
+
+function acceptFakeCall() {
+  $('#fake-call-actions').hidden = true;
+  $('#fake-call-active-ui').hidden = false;
+  $('#fake-call-status').textContent = tr('nav.fake_connected');
+  callSec = 0;
+  clearInterval(fakeCallTimer);
+  fakeCallTimer = setInterval(() => {
+    callSec++;
+    const m = String(Math.floor(callSec / 60)).padStart(2, '0');
+    const s = String(callSec % 60).padStart(2, '0');
+    const el = $('#call-timer');
+    if (el) el.textContent = `${m}:${s}`;
+  }, 1000);
+}
+
+function closeFakeCall() {
+  clearInterval(fakeCallTimer);
+  const dlg = $('#dlg-fake-call');
+  if (dlg && dlg.open) dlg.close();
+}
+
 function bind() {
+  const sosBtn = $('#btn-sos');
+  if (sosBtn) sosBtn.addEventListener('click', () => $('#dlg-sos').showModal());
+  const fabSos = $('#fab-sos');
+  if (fabSos) fabSos.addEventListener('click', () => $('#dlg-sos').showModal());
+  const hudSos = $('#btn-hud-sos');
+  if (hudSos) hudSos.addEventListener('click', () => $('#dlg-sos').showModal());
+
+  // Commute mode switcher (Google / Apple Maps style)
+  $$('.mode-tab').forEach((tab) => {
+    tab.addEventListener('click', () => {
+      $$('.mode-tab').forEach((t) => {
+        t.classList.toggle('is-active', t === tab);
+        t.setAttribute('aria-selected', String(t === tab));
+      });
+      S.commute = tab.dataset.commute;
+      renderRoutes();
+      const modeNames = {
+        walk: S.lang === 'bn' ? '🚶 হাঁটার নিরাপদ পথ' : '🚶 Walking Route',
+        rickshaw: S.lang === 'bn' ? '🛺 রিকশা / সিএনজি বিকল্প' : '🛺 Rickshaw / CNG Mode',
+        metro: S.lang === 'bn' ? '🚇 মেট্রোরেল করিডোর' : '🚇 Metro Rail Mode',
+      };
+      toast(modeNames[S.commute] || S.commute);
+    });
+  });
+
+  const fabHeatmap = $('#fab-heatmap');
+  if (fabHeatmap) {
+    fabHeatmap.addEventListener('click', () => {
+      const cur = S.layers.heatmap;
+      const next = !cur;
+      toggleLayer('heatmap', next);
+      fabHeatmap.classList.toggle('is-active', next);
+      const chk = $('#ly-caution-heatmap');
+      if (chk) chk.checked = next;
+      toast(next ? (S.lang === 'bn' ? 'মহিলাদের সতর্কতা হিটম্যাপ সক্রিয়' : 'Women\'s Caution Heatmap Activated') : (S.lang === 'bn' ? 'সতর্কতা হিটম্যাপ বন্ধ' : 'Caution Heatmap Disabled'));
+    });
+  }
+
+  const fabMetro = $('#fab-metro');
+  if (fabMetro) {
+    fabMetro.addEventListener('click', () => {
+      const cur = S.layers.metro;
+      const next = !cur;
+      toggleLayer('metro', next);
+      fabMetro.classList.toggle('is-active', next);
+      const chk = $('#ly-metro');
+      if (chk) chk.checked = next;
+      toast(next ? (S.lang === 'bn' ? 'মেট্রোরেল স্টেশনসমূহ দৃশ্যমান' : 'Metro Stations Shown') : (S.lang === 'bn' ? 'মেট্রোরেল লুকানো হয়েছে' : 'Metro Stations Hidden'));
+    });
+  }
+
+  const fabLoc = $('#fab-loc');
+  if (fabLoc) fabLoc.addEventListener('click', useMyLocation);
+
+  // 1-Tap Quick Explore Cards
+  $$('.explore-card').forEach((card) => {
+    card.addEventListener('click', () => {
+      const dName = card.dataset.destName;
+      const sName = card.dataset.startName;
+      const dRes = Q.search(sIndex, dName, 1);
+      const sRes = Q.search(sIndex, sName, 1);
+
+      if (dRes.length) {
+        if (!S.origin && sRes.length) {
+          placePoint('o', sRes[0].lon, sRes[0].lat, { kind: 'street', name: sRes[0].name });
+        }
+        pickResult('d', dRes[0]);
+        toast(S.lang === 'bn' ? `নিরাপদ পথ গণনা হচ্ছে: ${card.dataset.destLabel || dName}` : `Routing to: ${dName}`);
+      } else {
+        toast(dName);
+      }
+    });
+  });
+
+  // Live Safe Walk HUD buttons
+  const endWalkBtn = $('#btn-end-walk');
+  if (endWalkBtn) endWalkBtn.addEventListener('click', endSafeWalk);
+  const hudFakeCall = $('#btn-hud-fakecall');
+  if (hudFakeCall) hudFakeCall.addEventListener('click', openFakeCall);
+  const hudShare = $('#btn-hud-share');
+  if (hudShare) hudShare.addEventListener('click', () => shareRouteSummary());
+
+  // Fake Call buttons
+  const callAccept = $('#btn-call-accept');
+  if (callAccept) callAccept.addEventListener('click', acceptFakeCall);
+  const callDecline = $('#btn-call-decline');
+  if (callDecline) callDecline.addEventListener('click', closeFakeCall);
+  const callHangup = $('#btn-call-hangup');
+  if (callHangup) callHangup.addEventListener('click', closeFakeCall);
+
+  const shareFullBtn = $('#btn-share-route');
+  if (shareFullBtn) shareFullBtn.addEventListener('click', () => shareRouteSummary());
+
+  $$('.preset-chip').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const q = btn.dataset.preset;
+      const res = Q.search(sIndex, q, 1);
+      if (res.length) {
+        pickResult(S.origin ? 'd' : 'o', res[0]);
+      } else {
+        toast(q);
+      }
+    });
+  });
+
   $('#btn-lang').addEventListener('click', () => {
     S.lang = S.lang === 'bn' ? 'en' : 'bn'; pref.set('lang', S.lang);
     applyStatic(); render(); fillAbout();
+    drawCautionHeatmap(); drawMetroStations();
     if ($('#dlg-mine').open) openMine();
   });
   $('#btn-about').addEventListener('click', () => { fillAbout(); $('#dlg-about').showModal(); });
@@ -453,6 +811,20 @@ function bind() {
     render(); setTimeout(() => map && map.invalidateSize(), 50);
   });
   $('#routes').addEventListener('click', (ev) => {
+    const wb = ev.target.closest('[data-walk-idx]');
+    if (wb) {
+      const idx = Number(wb.dataset.walkIdx);
+      S.selected = idx;
+      drawRoutes(); renderRoutes();
+      startSafeWalk(S.groups[idx]);
+      return;
+    }
+    const sb = ev.target.closest('[data-share-idx]');
+    if (sb) {
+      const idx = Number(sb.dataset.shareIdx);
+      shareRouteSummary(S.groups[idx]);
+      return;
+    }
     const b = ev.target.closest('.route-btn'); if (!b) return;
     S.selected = Number(b.dataset.i); drawRoutes(); renderRoutes(); fitRoutes();
   });
@@ -466,12 +838,37 @@ function bind() {
     R.removeReport(b.dataset.del); openMine(); applyReports(); toast(tr('rep.deleted'));
   });
   $('#ly-risk').addEventListener('change', (e) => { S.layers.risk = e.target.checked; paintNetwork(); render(); });
+  const chkCaution = $('#ly-caution-heatmap');
+  if (chkCaution) {
+    chkCaution.addEventListener('change', (e) => {
+      toggleLayer('heatmap', e.target.checked);
+      const fab = $('#fab-heatmap');
+      if (fab) fab.classList.toggle('is-active', e.target.checked);
+    });
+  }
+  const chkMetro = $('#ly-metro');
+  if (chkMetro) {
+    chkMetro.addEventListener('change', (e) => {
+      toggleLayer('metro', e.target.checked);
+      const fab = $('#fab-metro');
+      if (fab) fab.classList.toggle('is-active', e.target.checked);
+    });
+  }
   $('#ly-police').addEventListener('change', (e) => toggleLayer('police', e.target.checked));
   $('#ly-hospital').addEventListener('change', (e) => toggleLayer('hospital', e.target.checked));
   window.addEventListener('resize', () => map && map.invalidateSize());
 }
 
-function toggleLayer(k, on) { S.layers[k] = on; if (on) poi[k].addTo(map); else poi[k].remove(); }
+function toggleLayer(k, on) {
+  S.layers[k] = on;
+  if (k === 'heatmap') {
+    if (on) cautionHeatLayer.addTo(map); else cautionHeatLayer.remove();
+  } else if (k === 'metro') {
+    if (on) metroLayer.addTo(map); else metroLayer.remove();
+  } else {
+    if (on) poi[k].addTo(map); else poi[k].remove();
+  }
+}
 
 /* ---------- start ---------- */
 function initMap() {
@@ -489,17 +886,25 @@ function initMap() {
   const seen = new Set();
   for (const e of g.edges) {
     if (seen.has(e.key)) continue; seen.add(e.key);
-    const line = L.polyline(e.pts.map((p) => [p[1], p[0]]), { renderer: canvas, interactive: false, color: cssVar('--base-net'), weight: 1.6, opacity: 0.75 }).addTo(map);
+    const line = L.polyline(e.pts.map((p) => [p[1], p[0]]), { renderer: canvas, interactive: false, color: cssVar('--base-net'), weight: 1.2, opacity: 0 }).addTo(map);
     baseLines.push({ line, e });
   }
   hlLayer = L.layerGroup().addTo(map);
   routeLayer = L.layerGroup().addTo(map);
   reportLayer = L.layerGroup().addTo(map);
+  cautionHeatLayer = L.layerGroup().addTo(map);
+  metroLayer = L.layerGroup().addTo(map);
+
+  drawCautionHeatmap();
+  drawMetroStations();
+
   for (const k of ['police', 'hospital']) {
     poi[k] = L.layerGroup((g.pois[k] || []).map((p) => L.marker([p[1], p[0]], {
       icon: mkIcon('', 26, `mk mk-${k}`), title: tr('layers.' + k), keyboard: false, interactive: false })));
   }
   if (S.layers.police) poi.police.addTo(map);
+  if (!S.layers.heatmap) cautionHeatLayer.remove();
+  if (!S.layers.metro) metroLayer.remove();
   map.on('click', onMapClick);
 }
 

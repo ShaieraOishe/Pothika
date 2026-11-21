@@ -4,7 +4,11 @@ import { readFileSync } from 'node:fs';
 import { buildGraph, nearestNode } from '../../web/js/graph.js';
 import { norm, buildIndex, search } from '../../web/js/search.js';
 
-const g = buildGraph(JSON.parse(readFileSync(new URL('../../web/data/area.json', import.meta.url))));
+import { existsSync } from 'node:fs';
+const dataPath = existsSync(new URL('../../web/data/area.pilot.json', import.meta.url))
+  ? '../../web/data/area.pilot.json'
+  : '../../web/data/area.json';
+const g = buildGraph(JSON.parse(readFileSync(new URL(dataPath, import.meta.url))));
 const items = buildIndex(g);
 
 test('norm treats Bangla and English road names alike', () => {

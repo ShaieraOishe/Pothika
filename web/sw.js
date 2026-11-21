@@ -1,5 +1,5 @@
 // Offline support: cache the app and its data. Map tiles are left to the browser's normal cache.
-const CACHE = 'dsr-v4';
+const CACHE = 'dsr-v6';
 const ASSETS = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
   'js/app.js', 'js/graph.js', 'js/reports.js', 'js/i18n.js', 'js/search.js',

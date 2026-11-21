@@ -25,7 +25,7 @@ export function buildGraph(data) {
     byKey.get(e.key).push(e.i);
     nodeKeys[e.u].add(e.key); nodeKeys[e.v].add(e.key);
   }
-  const g = { meta, nodes, edges, adj, kx, byKey, nodeKeys, pois: data.pois || { police: [], hospital: [] } };
+  const g = { meta, nodes, edges, adj, kx, byKey, nodeKeys, pois: data.pois || { police: [], hospital: [] }, zones: data.zones || [] };
   setOverrides(g, new Map());
   return g;
 }

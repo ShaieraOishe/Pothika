@@ -8,12 +8,49 @@ const SECTORS = ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'];
 const nfc = (list) => new RegExp(list.map((x) => x.normalize('NFC')).join('|'), 'g');
 const ROAD_BN = nfc(['সড়ক', 'রোড', 'রাস্তা']), AVENUE_BN = nfc(['অ্যাভিনিউ', 'এভিনিউ']);   // NFC: ড় can be one letter or ড + nukta
 
+const DHAKA_ALIASES = [
+  [/ধানমন্ডি/g, 'dhanmondi'],
+  [/গুলশান/g, 'gulshan'],
+  [/বনানী/g, 'banani'],
+  [/মিরপুর/g, 'mirpur'],
+  [/উত্তরা/g, 'uttara'],
+  [/শাহবাগ/g, 'shahbag'],
+  [/ফার্মগেট/g, 'farmgate'],
+  [/পান্থপথ/g, 'panthapath'],
+  [/হাতিরঝিল/g, 'hatirjheel'],
+  [/মোহাম্মদপুর/g, 'mohammadpur'],
+  [/তেজগাঁও/g, 'tejgaon'],
+  [/মতিঝিল/g, 'motijheel'],
+  [/বাড্ডা/g, 'badda'],
+  [/রামপুরা/g, 'rampura'],
+  [/খিলগাঁও/g, 'khilgaon'],
+  [/লালবাগ/g, 'lalbagh'],
+  [/সদরঘাট/g, 'sadarghat'],
+  [/পুরান\s*ঢাকা/g, 'old dhaka'],
+  [/এয়ারপোর্ট/g, 'airport'],
+  [/সেক্টর/g, 'sector'],
+  [/রোকেয়া/g, 'rokeya'],
+  [/সরণি|স্মরণী/g, 'sarani'],
+  [/বিজয়/g, 'bijoy'],
+  [/মানিক\s*মিয়া/g, 'manik mia'],
+  [/প্রগতি/g, 'pragati'],
+  [/এলিফ্যান্ট/g, 'elephant'],
+  [/গ্রিন/g, 'green'],
+  [/বসুন্ধরা/g, 'bashundhara'],
+];
+
 export function norm(s) {
-  return String(s ?? '').normalize('NFC').toLowerCase()
+  let str = String(s ?? '').normalize('NFC').toLowerCase()
     .replace(/[০-৯]/g, (d) => BN_DIGITS.indexOf(d))
     .replace(ROAD_BN, ' road ')
     .replace(AVENUE_BN, ' avenue ')
-    .replace(/\bno\b\.?|নং/g, ' ')
+    .replace(/\bno\b\.?|নং/g, ' ');
+
+  for (const [pattern, replacement] of DHAKA_ALIASES) {
+    str = str.replace(pattern, ` ${replacement} `);
+  }
+
+  return str
     .replace(/[^\p{L}\p{M}\p{N}]+/gu, ' ')
     .trim().replace(/\s+/g, ' ');
 }
