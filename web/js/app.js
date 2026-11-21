@@ -16,13 +16,13 @@ const S = {
   night: isNightNow(),
   origin: null, dest: null,            // {node, ll:[lon,lat]}
   mode: 'plan',                        // 'plan' | 'report'
-  commute: 'walk',                     // 'walk' | 'rickshaw' | 'metro'
+  commute: 'drive',                    // 'drive' | 'bus' | 'bike' | 'rickshaw' | 'walk'
   groups: [], selected: 0, error: null,
-  layers: { risk: false, heatmap: true, police: true, hospital: false, metro: true },
+  layers: { risk: false, heatmap: true, traffic: true, police: true, hospital: false, metro: true },
   state: 'loading',                    // 'loading' | 'ready' | 'failed'
   locating: false, pending: null,      // pending: street hit while the report dialog is open
 };
-let g, map, tiles, canvas, routeLayer, reportLayer, hlLayer, cautionHeatLayer, metroLayer;
+let g, map, tiles, canvas, routeLayer, reportLayer, hlLayer, cautionHeatLayer, metroLayer, trafficLayer;
 let baseLines = [], poi = {}, pins = { o: null, d: null }, sIndex = [];
 const tr = (k, v) => t(S.lang, k, v);
 const whenWord = () => tr(S.night ? 'when.night' : 'when.day');
@@ -109,41 +109,87 @@ function renderRoutes() {
     const badgeText = isSafest ? tr('route.recommended') : tr('route.estimate');
     const badgeCls = isSafest ? 'badge badge-safest' : 'badge';
 
-    // Commute-specific metric pills (Google/Apple Maps style)
+    // Danger trend zone analysis along this specific route
+    const crossedZones = (g && g.zones ? g.zones.filter(z => z.level >= 2 && gr.coords.some(c => G.distM(g, [z.lon, z.lat], c) <= (z.r_m || 800))) : []);
+    const crossedHigh = crossedZones.filter(z => z.level >= 3);
+
+    // Multi-modal commute calculations (Google & Apple Maps Grade)
     let commutePill = '';
-    if (S.commute === 'rickshaw') {
-      const rMin = Math.max(3, Math.round(gr.length_m / 200));
-      const fareMin = Math.max(30, Math.round(gr.length_m / 100) * 3);
-      const fareMax = Math.max(50, Math.round(gr.length_m / 100) * 4.5);
-      const fareStr = S.lang === 'bn' ? `${fmtNum('bn', fareMin)}-${fmtNum('bn', fareMax)} ৳` : `${fareMin}-${fareMax} BDT`;
-      commutePill = `<span class="meta-pill">🛺 ${fmtDist(gr.length_m)}</span>
-                     <span class="meta-pill">⏱ ~${S.lang === 'bn' ? fmtNum('bn', rMin) : rMin} min</span>
-                     <span class="meta-pill">৳ ${fareStr}</span>`;
-    } else if (S.commute === 'metro') {
-      const mMin = Math.max(5, Math.round(gr.length_m / 350));
-      commutePill = `<span class="meta-pill">🚇 মেট্রোরেল করিডোর</span>
-                     <span class="meta-pill">⏱ ~${S.lang === 'bn' ? fmtNum('bn', mMin) : mMin} min</span>`;
+    const distKm = gr.length_m / 1000;
+    if (S.commute === 'drive') {
+      const delayMin = Math.max(2, Math.round(distKm * (S.night ? 1.2 : 2.5)));
+      const driveMin = Math.max(3, Math.round(distKm * 2.2 + delayMin));
+      const fuelFare = Math.max(40, Math.round(distKm * 18));
+      commutePill = `<span class="meta-pill">🚗 ${fmtDist(gr.length_m)}</span>
+                     <span class="meta-pill">⏱ ~${S.lang === 'bn' ? fmtNum('bn', driveMin) : driveMin} min</span>
+                     <span class="traffic-tag">🚦 +${S.lang === 'bn' ? fmtNum('bn', delayMin) : delayMin}m ${S.lang === 'bn' ? 'জ্যাম' : 'delay'}</span>
+                     <span class="meta-pill">⛽ ~${fuelFare} ৳</span>`;
+    } else if (S.commute === 'bus') {
+      const busMin = Math.max(6, Math.round(distKm * 3.8 + 8));
+      const fareBus = Math.min(45, Math.max(20, Math.round(distKm * 3.5 + 10)));
+      const lines = ['বিকাশ', 'অনাবিল', 'রাইদা', 'বিআরটিসি'][i % 4];
+      commutePill = `<span class="meta-pill">🚌 ${fmtDist(gr.length_m)}</span>
+                     <span class="meta-pill">⏱ ~${S.lang === 'bn' ? fmtNum('bn', busMin) : busMin} min</span>
+                     <span class="bus-tag">${lines}</span>
+                     <span class="meta-pill">৳ ${fareBus} ৳</span>`;
+    } else if (S.commute === 'bike') {
+      const bikeMin = Math.max(2, Math.round(distKm * 1.8 + 2));
+      const bikeFare = Math.max(50, Math.round(distKm * 22 + 30));
+      commutePill = `<span class="meta-pill">🏍️ ${fmtDist(gr.length_m)}</span>
+                     <span class="meta-pill">⏱ ~${S.lang === 'bn' ? fmtNum('bn', bikeMin) : bikeMin} min</span>
+                     <span class="meta-pill">৳ ~${bikeFare} ৳ (Pathao/Uber)</span>`;
+    } else if (S.commute === 'rickshaw') {
+      if (gr.length_m < 3800) {
+        const rMin = Math.max(3, Math.round(gr.length_m / 180));
+        const fareMin = Math.max(30, Math.round(gr.length_m / 100) * 3);
+        const fareMax = Math.max(50, Math.round(gr.length_m / 100) * 4.5);
+        commutePill = `<span class="meta-pill">🛺 ${fmtDist(gr.length_m)}</span>
+                       <span class="meta-pill">⏱ ~${S.lang === 'bn' ? fmtNum('bn', rMin) : rMin} min</span>
+                       <span class="meta-pill">৳ ${fareMin}-${fareMax} ৳</span>`;
+      } else {
+        const cMin = Math.max(8, Math.round(gr.length_m / 350));
+        const cFare = Math.max(160, Math.round(gr.length_m / 100) * 4);
+        commutePill = `<span class="meta-pill">🛺 CNG: ~${S.lang === 'bn' ? fmtNum('bn', cMin) : cMin} min</span>
+                       <span class="meta-pill">৳ ${cFare} ৳ (মিটার/চুক্তি)</span>`;
+      }
     } else {
+      const steps = Math.round(gr.length_m * 1.35);
+      const kcal = Math.round(gr.length_m * 0.05);
       commutePill = `<span class="meta-pill">🚶 ${fmtDist(gr.length_m)}</span>
-                     <span class="meta-pill">⏱ ${tr('route.min', { n: minutes(gr.length_m) })}</span>`;
+                     <span class="meta-pill">⏱ ${tr('route.min', { n: minutes(gr.length_m) })}</span>
+                     <span class="meta-pill">👟 ~${S.lang === 'bn' ? fmtNum('bn', steps) : steps} পা</span>`;
     }
 
-    // Safety Alert Summary Banner
+    // Safety Alert & Danger Trend Notification
     let cautionNotice = '';
-    if (hi >= 20) {
+    if (crossedHigh.length > 0 || hi >= 20) {
+      const zoneNames = crossedHigh.map(z => S.lang === 'bn' && z.name_bn ? z.name_bn : z.name).join(', ');
       cautionNotice = `<div class="route-caution-banner cb-danger">
         <span class="cb-ico">⚠️</span>
-        <span><strong>${S.lang === 'bn' ? 'সতর্কতা জোন অতিক্রম:' : 'Caution Zone Cross:'}</strong> ${S.lang === 'bn' ? `এই পথের প্রায় ${hi}% অংশে কম আলো বা সরু গলি রয়েছে। নির্জন সময়ে রিকশা বা সিএনজি ব্যবহার বাঞ্ছনীয়।` : `About ${hi}% of this route passes through low-lit or narrow stretches.`}</span>
+        <div class="cb-content">
+          <div class="cb-title"><strong>${S.lang === 'bn' ? 'টিয়ার ১: উচ্চ বিপদ ঝুঁকি অঞ্চল স্পর্শ করছে!' : 'Tier 1: High Danger Trend Detected!'}</strong></div>
+          <div class="cb-desc">${S.lang === 'bn' ? `এই রুটটি ${zoneNames || 'কম আলোকিত গলি'}-এর নির্জন বা ছিনতাই ঝুঁকিপূর্ণ এলাকা স্পর্শ করে। একা চলাচলের ক্ষেত্রে রুট ১ বেছে নেওয়ার পরামর্শ দেওয়া হচ্ছে।` : `Passes near ${zoneNames || 'poorly-lit alleys'}. Switching to Route 1 is advised.`}</div>
+          ${i !== 0 ? `<button type="button" class="btn-switch-safer" data-target-route="0">
+            <span class="btn-ico">🛡️</span>
+            <span>${tr('route.switch_safer')}</span>
+          </button>` : ''}
+        </div>
       </div>`;
-    } else if (hi > 5) {
+    } else if (crossedZones.length > 0 || hi > 5) {
       cautionNotice = `<div class="route-caution-banner cb-warn">
-        <span class="cb-ico">ℹ️</span>
-        <span>${S.lang === 'bn' ? 'মাঝারি সতর্ক থাকুন: প্রধান সড়ক ধরে হাঁটুন এবং নির্জন শাখা গলি পরিহার করুন।' : 'Stay alert: Stick to the main well-lit corridor.'}</span>
+        <span class="cb-ico">🟡</span>
+        <div class="cb-content">
+          <div class="cb-title"><strong>${S.lang === 'bn' ? 'টিয়ার ২: মাঝারি সতর্কতা জোন' : 'Tier 2: Moderate Caution Zone'}</strong></div>
+          <div class="cb-desc">${S.lang === 'bn' ? 'প্রধান সড়ক ধরে চলুন। গণপরিবহন বা রাইডশেয়ারের জন্য অপেক্ষার সময় সতর্ক থাকুন।' : 'Stay alert along major well-lit sections.'}</div>
+        </div>
       </div>`;
     } else {
       cautionNotice = `<div class="route-caution-banner cb-safe">
         <span class="cb-ico">🛡️</span>
-        <span>${S.lang === 'bn' ? 'নিরাপদ গ্রিন করিডোর: সিসিটিভি, উজ্জ্বল বাতি ও পুলিশ সহায়তা কেন্দ্র সংলগ্ন।' : 'Safe Green Corridor: CCTV, street lighting & police presence.'}</span>
+        <div class="cb-content">
+          <div class="cb-title"><strong>${S.lang === 'bn' ? 'টিয়ার ৩: নিরাপদ ও যাচাইকৃত গ্রিন করিডোর' : 'Tier 3: Verified Safe Green Corridor'}</strong></div>
+          <div class="cb-desc">${S.lang === 'bn' ? 'প্রধান আলোকিত এভিনিউ, সক্রিয় সিসিটিভি ক্যামেরা ও পুলিশ চেকপোস্ট সংলগ্ন। নারীদের জন্য সর্বোচ্চ নিরাপদ।' : 'Major illuminated avenue, CCTV surveillance & police presence.'}</div>
+        </div>
       </div>`;
     }
 
@@ -171,7 +217,7 @@ function renderRoutes() {
         <div class="route-actions-row">
           <button type="button" class="btn btn-primary btn-start-walk" data-walk-idx="${i}">
             <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            <span>${tr('nav.start_walk')}</span>
+            <span>${S.commute === 'walk' ? tr('nav.start_walk') : (S.lang === 'bn' ? 'লাইভ নেভিগেশন শুরু' : 'Start Navigation')}</span>
           </button>
           <button type="button" class="btn-share-mini" data-share-idx="${i}">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
@@ -383,6 +429,83 @@ function drawMetroStations() {
     });
 
     marker.addTo(metroLayer);
+  }
+}
+
+const TRAFFIC_CORRIDORS = [
+  // Airport Road & Pragati Sarani (heavy jam)
+  { name: 'Airport Rd / Pragati Sarani', name_bn: 'এয়ারপোর্ট রোড ও প্রগতি সরণি',
+    pts: [[90.400, 23.832], [90.408, 23.815], [90.418, 23.798], [90.426, 23.775]],
+    status: 'heavy', speed: 8, delay: 18 },
+  // Mirpur Road (slow)
+  { name: 'Mirpur Road', name_bn: 'মিরপুর রোড (গাবতলী-সায়েন্সল্যাব)',
+    pts: [[90.355, 23.790], [90.368, 23.772], [90.378, 23.754], [90.384, 23.738]],
+    status: 'slow', speed: 18, delay: 9 },
+  // Begum Rokeya Sarani (fast/moderate)
+  { name: 'Begum Rokeya Sarani', name_bn: 'বেগম রোকেয়া সরণি (মেট্রোরেল করিডোর)',
+    pts: [[90.370, 23.805], [90.375, 23.785], [90.382, 23.765]],
+    status: 'fast', speed: 38, delay: 2 },
+  // Mohakhali & Jahangir Gate (heavy)
+  { name: 'Mohakhali / Jahangir Gate', name_bn: 'মহাখালী ও জাহাঙ্গীর গেট করিডোর',
+    pts: [[90.405, 23.790], [90.398, 23.775], [90.390, 23.760]],
+    status: 'heavy', speed: 9, delay: 15 },
+  // Kazi Nazrul Islam Ave (heavy)
+  { name: 'Kazi Nazrul Islam Ave', name_bn: 'কাজী নজরুল ইসলাম এভিনিউ (ফার্মগেট-শাহবাগ)',
+    pts: [[90.390, 23.760], [90.393, 23.748], [90.396, 23.738]],
+    status: 'heavy', speed: 7, delay: 14 },
+  // Gulshan Avenue (moderate)
+  { name: 'Gulshan Avenue', name_bn: 'গুলশান এভিনিউ',
+    pts: [[90.413, 23.778], [90.418, 23.792], [90.415, 23.805]],
+    status: 'slow', speed: 20, delay: 6 },
+  // Hatirjheel Loop (fast)
+  { name: 'Hatirjheel Loop Expressway', name_bn: 'হাতিরঝিল এক্সপ্রেসওয়ে',
+    pts: [[90.398, 23.768], [90.410, 23.772], [90.420, 23.767]],
+    status: 'fast', speed: 45, delay: 1 },
+  // Panthapath & Green Road (moderate)
+  { name: 'Panthapath Road', name_bn: 'পান্থপথ (বসুন্ধরা সিটি সংলগ্ন)',
+    pts: [[90.380, 23.752], [90.390, 23.751]],
+    status: 'slow', speed: 16, delay: 8 }
+];
+
+function drawTraffic() {
+  if (!trafficLayer) return;
+  trafficLayer.clearLayers();
+  for (const c of TRAFFIC_CORRIDORS) {
+    const isHeavy = c.status === 'heavy';
+    const isSlow = c.status === 'slow';
+    const color = isHeavy ? '#dc2626' : (isSlow ? '#f59e0b' : '#10b981');
+    const glow = isHeavy ? 'rgba(220, 38, 38, 0.45)' : (isSlow ? 'rgba(245, 158, 11, 0.45)' : 'rgba(16, 185, 129, 0.45)');
+    const statusText = isHeavy ? (S.lang === 'bn' ? 'তীব্র যানজট' : 'Heavy Traffic') :
+                       (isSlow ? (S.lang === 'bn' ? 'ধীরগতি' : 'Slow Traffic') :
+                                 (S.lang === 'bn' ? 'স্বাভাবিক গতি' : 'Fast Flow'));
+    const name = S.lang === 'bn' ? c.name_bn : c.name;
+    const ll = c.pts.map(p => [p[1], p[0]]);
+
+    L.polyline(ll, { color: glow, weight: 8, opacity: 0.6, interactive: false, lineCap: 'round' }).addTo(trafficLayer);
+
+    const line = L.polyline(ll, {
+      color: color,
+      weight: 4.5,
+      opacity: 0.95,
+      interactive: true,
+      lineCap: 'round',
+      dashArray: isSlow ? '10, 4' : null,
+    }).addTo(trafficLayer);
+
+    const popupHtml = `
+      <div class="traffic-popup-card">
+        <div class="tf-header">
+          <span class="tf-dot ${isHeavy ? 'tf-heavy' : (isSlow ? 'tf-slow' : 'tf-fast')}"></span>
+          <strong>${name}</strong>
+        </div>
+        <div class="tf-meta">
+          <span>🚦 <strong>${statusText}</strong></span>
+          <span>⚡ গতি: ~${S.lang === 'bn' ? fmtNum('bn', c.speed) : c.speed} km/h</span>
+          ${c.delay > 0 ? `<span class="tf-delay">⏱ +${S.lang === 'bn' ? fmtNum('bn', c.delay) : c.delay} min ${S.lang === 'bn' ? 'বিলম্ব' : 'delay'}</span>` : ''}
+        </div>
+      </div>
+    `;
+    line.bindPopup(popupHtml, { className: 'traffic-popup' });
   }
 }
 
@@ -690,7 +813,7 @@ function bind() {
   const hudSos = $('#btn-hud-sos');
   if (hudSos) hudSos.addEventListener('click', () => $('#dlg-sos').showModal());
 
-  // Commute mode switcher (Google / Apple Maps style)
+  // Commute mode switcher (Google & Apple Maps 5-mode system)
   $$('.mode-tab').forEach((tab) => {
     tab.addEventListener('click', () => {
       $$('.mode-tab').forEach((t) => {
@@ -700,13 +823,28 @@ function bind() {
       S.commute = tab.dataset.commute;
       renderRoutes();
       const modeNames = {
-        walk: S.lang === 'bn' ? '🚶 হাঁটার নিরাপদ পথ' : '🚶 Walking Route',
-        rickshaw: S.lang === 'bn' ? '🛺 রিকশা / সিএনজি বিকল্প' : '🛺 Rickshaw / CNG Mode',
-        metro: S.lang === 'bn' ? '🚇 মেট্রোরেল করিডোর' : '🚇 Metro Rail Mode',
+        drive: S.lang === 'bn' ? '🚗 গাড়ি (Drive)' : '🚗 Drive (Car)',
+        bus: S.lang === 'bn' ? '🚌 বাস ও গণপরিবহন' : '🚌 Bus & Transit',
+        bike: S.lang === 'bn' ? '🏍️ বাইক / রাইড' : '🏍️ Bike / Ride',
+        rickshaw: S.lang === 'bn' ? '🛺 রিকশা / সিএনজি' : '🛺 Rickshaw / CNG',
+        walk: S.lang === 'bn' ? '🚶 হাঁটা (Walk)' : '🚶 Walk',
       };
       toast(modeNames[S.commute] || S.commute);
     });
   });
+
+  const fabTraffic = $('#fab-traffic');
+  if (fabTraffic) {
+    fabTraffic.addEventListener('click', () => {
+      const cur = S.layers.traffic;
+      const next = !cur;
+      toggleLayer('traffic', next);
+      fabTraffic.classList.toggle('is-active', next);
+      const chk = $('#ly-traffic');
+      if (chk) chk.checked = next;
+      toast(next ? (S.lang === 'bn' ? 'লাইভ ট্রাফিক লেয়ার সক্রিয় 🚦' : 'Live Traffic Flow Activated 🚦') : (S.lang === 'bn' ? 'ট্রাফিক লেয়ার বন্ধ' : 'Traffic Layer Disabled'));
+    });
+  }
 
   const fabHeatmap = $('#fab-heatmap');
   if (fabHeatmap) {
@@ -791,7 +929,7 @@ function bind() {
   $('#btn-lang').addEventListener('click', () => {
     S.lang = S.lang === 'bn' ? 'en' : 'bn'; pref.set('lang', S.lang);
     applyStatic(); render(); fillAbout();
-    drawCautionHeatmap(); drawMetroStations();
+    drawCautionHeatmap(); drawMetroStations(); drawTraffic();
     if ($('#dlg-mine').open) openMine();
   });
   $('#btn-about').addEventListener('click', () => { fillAbout(); $('#dlg-about').showModal(); });
@@ -811,6 +949,13 @@ function bind() {
     render(); setTimeout(() => map && map.invalidateSize(), 50);
   });
   $('#routes').addEventListener('click', (ev) => {
+    const sw = ev.target.closest('.btn-switch-safer');
+    if (sw) {
+      S.selected = 0;
+      drawRoutes(); renderRoutes(); fitRoutes();
+      toast(S.lang === 'bn' ? 'নিরাপদ রুট ১ নির্বাচিত হয়েছে 🛡️' : 'Switched to Safest Route 1 🛡️');
+      return;
+    }
     const wb = ev.target.closest('[data-walk-idx]');
     if (wb) {
       const idx = Number(wb.dataset.walkIdx);
@@ -838,6 +983,14 @@ function bind() {
     R.removeReport(b.dataset.del); openMine(); applyReports(); toast(tr('rep.deleted'));
   });
   $('#ly-risk').addEventListener('change', (e) => { S.layers.risk = e.target.checked; paintNetwork(); render(); });
+  const chkTraffic = $('#ly-traffic');
+  if (chkTraffic) {
+    chkTraffic.addEventListener('change', (e) => {
+      toggleLayer('traffic', e.target.checked);
+      const fab = $('#fab-traffic');
+      if (fab) fab.classList.toggle('is-active', e.target.checked);
+    });
+  }
   const chkCaution = $('#ly-caution-heatmap');
   if (chkCaution) {
     chkCaution.addEventListener('change', (e) => {
@@ -865,6 +1018,8 @@ function toggleLayer(k, on) {
     if (on) cautionHeatLayer.addTo(map); else cautionHeatLayer.remove();
   } else if (k === 'metro') {
     if (on) metroLayer.addTo(map); else metroLayer.remove();
+  } else if (k === 'traffic') {
+    if (on) trafficLayer.addTo(map); else trafficLayer.remove();
   } else {
     if (on) poi[k].addTo(map); else poi[k].remove();
   }
@@ -894,15 +1049,18 @@ function initMap() {
   reportLayer = L.layerGroup().addTo(map);
   cautionHeatLayer = L.layerGroup().addTo(map);
   metroLayer = L.layerGroup().addTo(map);
+  trafficLayer = L.layerGroup().addTo(map);
 
   drawCautionHeatmap();
   drawMetroStations();
+  drawTraffic();
 
   for (const k of ['police', 'hospital']) {
     poi[k] = L.layerGroup((g.pois[k] || []).map((p) => L.marker([p[1], p[0]], {
       icon: mkIcon('', 26, `mk mk-${k}`), title: tr('layers.' + k), keyboard: false, interactive: false })));
   }
   if (S.layers.police) poi.police.addTo(map);
+  if (!S.layers.traffic) trafficLayer.remove();
   if (!S.layers.heatmap) cautionHeatLayer.remove();
   if (!S.layers.metro) metroLayer.remove();
   map.on('click', onMapClick);
@@ -911,7 +1069,7 @@ function initMap() {
 async function start() {
   applyStatic(); applyTheme(); bind(); render();
   try {
-    const res = await fetch('data/area.json?v=11');
+    const res = await fetch('data/area.json?v=12');
     if (!res.ok) throw new Error(res.status);
     g = G.buildGraph(await res.json());
   } catch (err) {

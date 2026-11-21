@@ -10,13 +10,13 @@
   <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
-  <link rel="stylesheet" href="style.css?v=11">
+  <link rel="stylesheet" href="style.css?v=12">
   <script>
     // Force eviction of stale caches from prior prototype versions
     if ('serviceWorker' in navigator) {
       caches.keys().then(keys => {
         for (const k of keys) {
-          if (k !== 'pothika-v11') caches.delete(k);
+          if (k !== 'pothika-v12') caches.delete(k);
         }
       });
     }
@@ -110,9 +110,13 @@
         <span class="fab-ico">🚨</span>
         <span class="fab-label">SOS</span>
       </button>
-      <button id="fab-heatmap" class="fab-btn is-active" type="button" title="মহিলাদের সতর্কতা হিটম্যাপ">
+      <button id="fab-traffic" class="fab-btn is-active" type="button" title="লাইভ ট্রাফিক (Live Traffic)">
+        <span class="fab-ico">🚦</span>
+        <span class="fab-label">ট্রাফিক</span>
+      </button>
+      <button id="fab-heatmap" class="fab-btn is-active" type="button" title="বিপদ প্রবণতা ও সতর্কতা ম্যাপ">
         <span class="fab-ico">🔥</span>
-        <span class="fab-label">সতর্কতা</span>
+        <span class="fab-label">বিপদ ট্রেন্ড</span>
       </button>
       <button id="fab-metro" class="fab-btn" type="button" title="মেট্রোরেল স্টেশন (MRT-6)">
         <span class="fab-ico">🚇</span>
@@ -247,19 +251,27 @@
             </button>
           </div>
 
-          <!-- Commute Mode Switcher (Google & Apple Maps Style) -->
+          <!-- Commute Mode Switcher (Google & Apple Maps 5-Mode System) -->
           <div class="commute-modes-bar" role="tablist">
-            <button type="button" class="mode-tab is-active" data-commute="walk" role="tab" aria-selected="true">
-              <span class="mode-ico">🚶</span>
-              <span class="mode-text" data-i18n="commute.walk">হাঁটা (Walk)</span>
+            <button type="button" class="mode-tab is-active" data-commute="drive" role="tab" aria-selected="true">
+              <span class="mode-ico">🚗</span>
+              <span class="mode-text" data-i18n="commute.drive">গাড়ি (Drive)</span>
+            </button>
+            <button type="button" class="mode-tab" data-commute="bus" role="tab" aria-selected="false">
+              <span class="mode-ico">🚌</span>
+              <span class="mode-text" data-i18n="commute.bus">বাস (Bus)</span>
+            </button>
+            <button type="button" class="mode-tab" data-commute="bike" role="tab" aria-selected="false">
+              <span class="mode-ico">🏍️</span>
+              <span class="mode-text" data-i18n="commute.bike">বাইক (Bike)</span>
             </button>
             <button type="button" class="mode-tab" data-commute="rickshaw" role="tab" aria-selected="false">
               <span class="mode-ico">🛺</span>
               <span class="mode-text" data-i18n="commute.rickshaw">রিকশা / সিএনজি</span>
             </button>
-            <button type="button" class="mode-tab" data-commute="metro" role="tab" aria-selected="false">
-              <span class="mode-ico">🚇</span>
-              <span class="mode-text" data-i18n="commute.metro">মেট্রো ও বাস</span>
+            <button type="button" class="mode-tab" data-commute="walk" role="tab" aria-selected="false">
+              <span class="mode-ico">🚶</span>
+              <span class="mode-text" data-i18n="commute.walk">হাঁটা (Walk)</span>
             </button>
           </div>
 
@@ -372,10 +384,21 @@
                 <span data-i18n="layers.high">উচ্চ ঝুঁকি</span>
               </div>
               <label class="check">
+                <input type="checkbox" id="ly-traffic" checked>
+                <span class="check-custom"></span>
+                <span class="check-ico">🚦</span>
+                <span data-i18n="traffic.title">লাইভ ট্রাফিক অবস্থা (Live Traffic Flow)</span>
+              </label>
+              <div id="traffic-legend" class="traffic-legend-bar" aria-hidden="true">
+                <span class="tf-dot tf-fast"></span> <span data-i18n="traffic.fast">স্বাভাবিক</span>
+                <span class="tf-dot tf-slow"></span> <span data-i18n="traffic.slow">ধীরগতি</span>
+                <span class="tf-dot tf-heavy"></span> <span data-i18n="traffic.heavy">তীব্র জ্যাম</span>
+              </div>
+              <label class="check">
                 <input type="checkbox" id="ly-caution-heatmap" checked>
                 <span class="check-custom"></span>
                 <span class="check-ico">🔥</span>
-                <span data-i18n="heatmap.title">মহিলাদের সতর্কতা হিটম্যাপ (Caution Heatmap)</span>
+                <span data-i18n="heatmap.title">বিপদ প্রবণতা হিটম্যাপ (Danger Trends)</span>
               </label>
               <label class="check">
                 <input type="checkbox" id="ly-metro" checked>
@@ -579,6 +602,6 @@
 <noscript><p style="padding:16px">এই অ্যাপ চালাতে JavaScript দরকার। This app needs JavaScript.</p></noscript>
 
 <script src="vendor/leaflet/leaflet.js"></script>
-<script type="module" src="js/app.js?v=11"></script>
+<script type="module" src="js/app.js?v=12"></script>
 </body>
 </html>

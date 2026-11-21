@@ -1,5 +1,5 @@
 // Offline support: Network-first for dynamic live updates, cache fallback for offline usage.
-const CACHE = 'pothika-v11';
+const CACHE = 'pothika-v12';
 const ASSETS = [
   './', 'index.html', 'style.css', 'manifest.webmanifest',
   'js/app.js', 'js/graph.js', 'js/reports.js', 'js/i18n.js', 'js/search.js',
