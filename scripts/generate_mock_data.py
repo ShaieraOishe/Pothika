@@ -161,6 +161,12 @@ NAMED_ROADS = [
     ("Mohammadpur Bus Stand Road", 90.3550, 23.7620, 90.3650, 23.7620, "tertiary"),
     ("Rayerbazar Road",      90.3550, 23.7500, 90.3600, 23.7600, "tertiary"),
     ("Zigatala Road",        90.3700, 23.7380, 90.3750, 23.7420, "tertiary"),
+    ("Bashundhara Road",     90.4200, 23.8050, 90.4450, 23.8150, "primary"),
+    ("Bashundhara Main Avenue", 90.4220, 23.8120, 90.4450, 23.8140, "primary"),
+    ("Bashundhara Block A Road", 90.4250, 23.8080, 90.4350, 23.8080, "tertiary"),
+    ("Bashundhara Block C Road", 90.4270, 23.8110, 90.4380, 23.8110, "tertiary"),
+    ("Bashundhara Block F Road", 90.4320, 23.8160, 90.4450, 23.8160, "tertiary"),
+    ("Apollo Road",          90.4280, 23.8090, 90.4360, 23.8120, "secondary"),
 ]
 
 # ── Police stations ────────────────────────────────────────────

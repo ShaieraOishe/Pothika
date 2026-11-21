@@ -37,6 +37,14 @@ const DHAKA_ALIASES = [
   [/এলিফ্যান্ট/g, 'elephant'],
   [/গ্রিন/g, 'green'],
   [/বসুন্ধরা/g, 'bashundhara'],
+  [/যমুনা/g, 'jamuna'],
+  [/এভারকেয়ার|অ্যাপোলো/g, 'evercare'],
+  [/লেক/g, 'lake'],
+  [/টিএসসি/g, 'tsc'],
+  [/বিশ্ববিদ্যালয়/g, 'university'],
+  [/হাসপাতাল/g, 'hospital'],
+  [/সিটি/g, 'city'],
+  [/ব্লক/g, 'block'],
 ];
 
 export function norm(s) {
@@ -98,6 +106,89 @@ export function buildIndex(g) {
                    len_m: Math.round(len), dir: compass(g, best[0], best[1]) });
     }
   }
+
+  // Also index Popular Areas, Zones, and Neighborhoods (e.g. Bashundhara R/A, Dhanmondi, Gulshan)
+  if (g.zones) {
+    for (const z of g.zones) {
+      const cleanName = z.name_bn ? `${z.name} (${z.name_bn})` : z.name;
+      const k = norm(z.name);
+      if (!k) continue;
+      let best = null, bd = Infinity;
+      for (let n = 0; n < g.nodes.length; n++) {
+        const p = g.nodes[n];
+        const d = Math.hypot((p[0] - z.lon) * g.kx, (p[1] - z.lat) * KLAT);
+        if (d < bd) { bd = d; best = p; }
+      }
+      if (best) {
+        items.push({
+          name: cleanName,
+          key: k,
+          tokens: k.split(' '),
+          lon: best[0],
+          lat: best[1],
+          len_m: z.r_m || 800,
+          dir: compass(g, best[0], best[1]),
+        });
+      }
+    }
+  }
+
+  // Also index Metro stations
+  if (g.pois && g.pois.metro) {
+    for (const st of g.pois.metro) {
+      const cleanName = st.name_bn ? `${st.name} (${st.name_bn})` : `${st.name} MRT`;
+      const k = norm(st.name + ' metro station');
+      let best = null, bd = Infinity;
+      for (let n = 0; n < g.nodes.length; n++) {
+        const p = g.nodes[n];
+        const d = Math.hypot((p[0] - st.ll[0]) * g.kx, (p[1] - st.ll[1]) * KLAT);
+        if (d < bd) { bd = d; best = p; }
+      }
+      if (best) {
+        items.push({
+          name: cleanName,
+          key: k,
+          tokens: k.split(' '),
+          lon: best[0],
+          lat: best[1],
+          len_m: 500,
+          dir: compass(g, best[0], best[1]),
+        });
+      }
+    }
+  }
+
+  // Well-known Dhaka Landmarks (Bashundhara City, Jamuna Future Park, Dhanmondi Lake, etc.)
+  const LANDMARKS = [
+    { name: 'Bashundhara City Shopping Mall', name_bn: 'বসুন্ধরা সিটি শপিং মল (পান্থপথ)', lon: 90.390, lat: 23.751 },
+    { name: 'Jamuna Future Park', name_bn: 'যমুনা ফিউচার পার্ক (বসুন্ধরা গেট)', lon: 90.424, lat: 23.814 },
+    { name: 'Dhanmondi Lake', name_bn: 'ধানমন্ডি লেক পার্ক', lon: 90.377, lat: 23.746 },
+    { name: 'TSC Dhaka University', name_bn: 'টিএসসি ও ঢাকা বিশ্ববিদ্যালয়', lon: 90.396, lat: 23.732 },
+    { name: 'Evercare Hospital Dhaka', name_bn: 'এভারকেয়ার হাসপাতাল (বসুন্ধরা)', lon: 90.431, lat: 23.811 },
+    { name: 'Square Hospital', name_bn: 'স্কয়ার হাসপাতাল (পান্থপথ)', lon: 90.387, lat: 23.753 },
+  ];
+  for (const lm of LANDMARKS) {
+    const cleanName = lm.name_bn ? `${lm.name} (${lm.name_bn})` : lm.name;
+    const k = norm(lm.name);
+    let best = null, bd = Infinity;
+    for (let n = 0; n < g.nodes.length; n++) {
+      const p = g.nodes[n];
+      const d = Math.hypot((p[0] - lm.lon) * g.kx, (p[1] - lm.lat) * KLAT);
+      if (d < bd) { bd = d; best = p; }
+    }
+    if (best) {
+      items.push({
+        name: cleanName,
+        key: k,
+        tokens: k.split(' '),
+        lon: best[0],
+        lat: best[1],
+        len_m: 600,
+        dir: compass(g, best[0], best[1]),
+      });
+    }
+  }
+
   return items;
 }
 
@@ -108,11 +199,13 @@ export function search(items, query, limit = 6) {
     let s;
     if (it.key === nq) s = 100;
     else if (it.key.startsWith(nq)) s = 70;
+    else if (it.key.includes(nq)) s = 50;
     else {
       s = 0;
       for (const q of qt) {
         if (it.tokens.includes(q)) s += 10;
         else if (it.tokens.some((x) => x.startsWith(q))) s += 5;
+        else if (it.tokens.some((x) => x.includes(q))) s += 3;
         else { s = -1; break; }
       }
       if (s < 0) continue;

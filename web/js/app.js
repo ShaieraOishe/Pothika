@@ -903,20 +903,21 @@ function bind() {
   const fabLoc = $('#fab-loc');
   if (fabLoc) fabLoc.addEventListener('click', useMyLocation);
 
-  // 1-Tap Quick Explore Cards
+  // 1-Tap Quick Explore Cards (sets destination without inventing a start position)
   $$('.explore-card').forEach((card) => {
     card.addEventListener('click', () => {
       const dName = card.dataset.destName;
-      const sName = card.dataset.startName;
       const dRes = Q.search(sIndex, dName, 1);
-      const sRes = Q.search(sIndex, sName, 1);
 
       if (dRes.length) {
-        if (!S.origin && sRes.length) {
-          placePoint('o', sRes[0].lon, sRes[0].lat, { kind: 'street', name: sRes[0].name });
-        }
         pickResult('d', dRes[0]);
-        toast(S.lang === 'bn' ? `নিরাপদ পথ গণনা হচ্ছে: ${card.dataset.destLabel || dName}` : `Routing to: ${dName}`);
+        if (S.origin) {
+          toast(S.lang === 'bn' ? `নিরাপদ পথ গণনা হচ্ছে: ${card.dataset.destLabel || dName}` : `Routing to: ${dName}`);
+        } else {
+          toast(S.lang === 'bn' ? `গন্তব্য সেট হয়েছে: ${card.dataset.destLabel || dName}। এবার শুরুর স্থান বেছে নিন।` : `Destination set: ${dName}. Now choose starting point.`);
+          const oInp = $('#q-o');
+          if (oInp) oInp.focus();
+        }
       } else {
         toast(dName);
       }
@@ -947,7 +948,14 @@ function bind() {
       const q = btn.dataset.preset;
       const res = Q.search(sIndex, q, 1);
       if (res.length) {
-        pickResult(S.origin ? 'd' : 'o', res[0]);
+        const which = S.origin ? 'd' : 'o';
+        pickResult(which, res[0]);
+        if (which === 'o' && !S.dest) {
+          toast(S.lang === 'bn' ? `শুরুর স্থান: ${q}। এবার গন্তব্য বেছে নিন।` : `Start set: ${q}. Now choose destination.`);
+          const dInp = $('#q-d'); if (dInp) dInp.focus();
+        } else if (which === 'd') {
+          toast(S.lang === 'bn' ? `গন্তব্য: ${q}` : `Destination: ${q}`);
+        }
       } else {
         toast(q);
       }
