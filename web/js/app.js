@@ -538,12 +538,35 @@ function placePoint(which, lon, lat, how) {
 
 function recompute(fit) {
   S.error = null;
+  const sheet = $('#sheet');
   if (S.origin && S.dest) {
     const res = G.routeOptions(g, S.origin.node, S.dest.node, S.night);
-    if (res.error) { S.groups = []; S.error = res.error; } else { S.groups = res.groups; S.selected = 0; }
-  } else S.groups = [];
+    if (res.error) {
+      S.groups = [];
+      S.error = res.error;
+      if (sheet) sheet.classList.remove('has-routes');
+    } else {
+      S.groups = res.groups;
+      S.selected = 0;
+      if (sheet) {
+        sheet.classList.add('has-routes');
+        sheet.classList.remove('collapsed');
+      }
+    }
+  } else {
+    S.groups = [];
+    if (sheet) sheet.classList.remove('has-routes');
+  }
   drawRoutes(); render();
-  if (fit && S.groups.length) fitRoutes();
+  if (fit && S.groups.length) {
+    fitRoutes();
+    const box = $('#routes-box');
+    if (box && window.matchMedia('(max-width: 899px)').matches) {
+      setTimeout(() => {
+        box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 100);
+    }
+  }
 }
 
 function clearPoint(which) {
@@ -614,6 +637,8 @@ function reset() {
   S.origin = S.dest = null; S.groups = []; S.error = null; S.mode = 'plan';
   for (const k of ['o', 'd']) if (pins[k]) { pins[k].remove(); pins[k] = null; }
   $('#map').classList.remove('is-reporting');
+  const sheet = $('#sheet');
+  if (sheet) sheet.classList.remove('has-routes', 'expanded');
   drawRoutes(); render();
 }
 
@@ -946,11 +971,76 @@ function bind() {
   $('#btn-report').addEventListener('click', () => setMode(S.mode === 'report' ? 'plan' : 'report'));
   $('#btn-mine').addEventListener('click', openMine);
   $('#btn-export').addEventListener('click', exportReports);
-  $('#btn-sheet').addEventListener('click', () => {
-    const sh = $('#sheet'); sh.classList.toggle('collapsed');
-    $('#btn-sheet').setAttribute('aria-expanded', String(!sh.classList.contains('collapsed')));
-    render(); setTimeout(() => map && map.invalidateSize(), 50);
-  });
+  const sh = $('#sheet');
+  const btnSh = $('#btn-sheet');
+  if (btnSh && sh) {
+    let startY = 0, startTime = 0;
+    btnSh.addEventListener('touchstart', (e) => {
+      startY = e.touches[0].clientY;
+      startTime = Date.now();
+    }, { passive: true });
+
+    btnSh.addEventListener('touchend', (e) => {
+      const dy = e.changedTouches[0].clientY - startY;
+      if (Math.abs(dy) > 25) {
+        if (dy < 0) {
+          // Swiped UP -> expand fully upward
+          sh.classList.remove('collapsed');
+          sh.classList.add('expanded');
+        } else {
+          // Swiped DOWN -> collapse
+          if (sh.classList.contains('expanded')) {
+            sh.classList.remove('expanded');
+          } else {
+            sh.classList.add('collapsed');
+          }
+        }
+        btnSh.setAttribute('aria-expanded', String(!sh.classList.contains('collapsed')));
+        render();
+        setTimeout(() => map && map.invalidateSize(), 60);
+      }
+    }, { passive: true });
+
+    btnSh.addEventListener('click', (e) => {
+      if (Date.now() - startTime < 250 && Math.abs(e.clientY - startY) > 15) return;
+      if (sh.classList.contains('collapsed')) {
+        sh.classList.remove('collapsed');
+        sh.classList.add('expanded');
+      } else if (sh.classList.contains('expanded')) {
+        sh.classList.remove('expanded');
+      } else {
+        sh.classList.add('expanded');
+      }
+      btnSh.setAttribute('aria-expanded', String(!sh.classList.contains('collapsed')));
+      render();
+      setTimeout(() => map && map.invalidateSize(), 60);
+    });
+
+    const plannerCard = $('.planner-card');
+    if (plannerCard) {
+      let pcStartY = 0;
+      plannerCard.addEventListener('touchstart', (e) => {
+        pcStartY = e.touches[0].clientY;
+      }, { passive: true });
+
+      plannerCard.addEventListener('touchend', (e) => {
+        const dy = e.changedTouches[0].clientY - pcStartY;
+        const body = $('#sheet-body');
+        if (dy < -40 && !sh.classList.contains('expanded')) {
+          sh.classList.remove('collapsed');
+          sh.classList.add('expanded');
+          btnSh.setAttribute('aria-expanded', 'true');
+          render();
+          setTimeout(() => map && map.invalidateSize(), 60);
+        } else if (dy > 40 && body && body.scrollTop <= 5 && sh.classList.contains('expanded')) {
+          sh.classList.remove('expanded');
+          btnSh.setAttribute('aria-expanded', 'true');
+          render();
+          setTimeout(() => map && map.invalidateSize(), 60);
+        }
+      }, { passive: true });
+    }
+  }
   $('#routes').addEventListener('click', (ev) => {
     const sw = ev.target.closest('.btn-switch-safer');
     if (sw) {
