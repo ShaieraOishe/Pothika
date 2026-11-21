@@ -453,6 +453,10 @@ def main():
 
                 edges.append([u, v, length, hw, name_idx, lighting_risk, road_risk,
                               activity_risk, pol_risk, lit_known, midpoints])
+                # Walking network is bi-directional
+                rev_mid = midpoints[::-1] if isinstance(midpoints, list) else 0
+                edges.append([v, u, length, hw, name_idx, lighting_risk, road_risk,
+                              activity_risk, pol_risk, lit_known, rev_mid])
 
     print(f"Generated {len(edges)} edges, {len(names_list)} street names")
 

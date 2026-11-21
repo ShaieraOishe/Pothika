@@ -10,7 +10,17 @@
   <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=11">
+  <script>
+    // Force eviction of stale caches from prior prototype versions
+    if ('serviceWorker' in navigator) {
+      caches.keys().then(keys => {
+        for (const k of keys) {
+          if (k !== 'pothika-v11') caches.delete(k);
+        }
+      });
+    }
+  </script>
 </head>
 <body>
 <div class="app">
@@ -50,8 +60,10 @@
 
     <div class="top-actions">
       <button id="btn-sos" class="btn-sos" type="button" aria-label="Emergency SOS">
-        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
         </svg>
         <span class="sos-text" data-i18n="sos.btn">জরুরি SOS</span>
       </button>
@@ -567,6 +579,6 @@
 <noscript><p style="padding:16px">এই অ্যাপ চালাতে JavaScript দরকার। This app needs JavaScript.</p></noscript>
 
 <script src="vendor/leaflet/leaflet.js"></script>
-<script type="module" src="js/app.js"></script>
+<script type="module" src="js/app.js?v=11"></script>
 </body>
 </html>

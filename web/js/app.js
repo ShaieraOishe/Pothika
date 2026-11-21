@@ -877,9 +877,9 @@ function initMap() {
   const phone = window.matchMedia('(max-width: 899px)').matches;
   map.fitBounds(bounds, { paddingTopLeft: [10, 10], paddingBottomRight: [10, (phone ? $('#sheet').offsetHeight : 0) + 10], animate: false });
   tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, errorTileUrl: '' }).addTo(map);
-  L.control.attribution({ position: 'topleft', prefix: false })
+  L.control.attribution({ position: 'bottomleft', prefix: false })
     .addAttribution('© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>').addTo(map);
-  L.control.zoom({ position: 'topright' }).addTo(map);
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
   L.rectangle(bounds, { color: cssVar('--ink-3'), weight: 1.5, dashArray: '6 6', fill: false, interactive: false }).addTo(map);
 
   canvas = L.canvas({ padding: 0.5 });
@@ -911,7 +911,7 @@ function initMap() {
 async function start() {
   applyStatic(); applyTheme(); bind(); render();
   try {
-    const res = await fetch('data/area.json');
+    const res = await fetch('data/area.json?v=11');
     if (!res.ok) throw new Error(res.status);
     g = G.buildGraph(await res.json());
   } catch (err) {
