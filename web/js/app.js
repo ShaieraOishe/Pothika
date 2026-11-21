@@ -120,44 +120,43 @@ function renderRoutes() {
       const delayMin = Math.max(2, Math.round(distKm * (S.night ? 1.2 : 2.5)));
       const driveMin = Math.max(3, Math.round(distKm * 2.2 + delayMin));
       const fuelFare = Math.max(40, Math.round(distKm * 18));
-      commutePill = `<span class="meta-pill">🚗 ${fmtDist(gr.length_m)}</span>
-                     <span class="meta-pill">⏱ ~${S.lang === 'bn' ? fmtNum('bn', driveMin) : driveMin} min</span>
-                     <span class="traffic-tag">🚦 +${S.lang === 'bn' ? fmtNum('bn', delayMin) : delayMin}m ${S.lang === 'bn' ? 'জ্যাম' : 'delay'}</span>
-                     <span class="meta-pill">⛽ ~${fuelFare} ৳</span>`;
+      commutePill = `<span class="meta-pill">${fmtDist(gr.length_m)}</span>
+                     <span class="meta-pill">~${S.lang === 'bn' ? fmtNum('bn', driveMin) : driveMin} min</span>
+                     <span class="traffic-tag">+${S.lang === 'bn' ? fmtNum('bn', delayMin) : delayMin}m ${S.lang === 'bn' ? 'জ্যাম' : 'delay'}</span>
+                     <span class="meta-pill">~${fuelFare} ৳</span>`;
     } else if (S.commute === 'bus') {
       const busMin = Math.max(6, Math.round(distKm * 3.8 + 8));
       const fareBus = Math.min(45, Math.max(20, Math.round(distKm * 3.5 + 10)));
       const lines = ['বিকাশ', 'অনাবিল', 'রাইদা', 'বিআরটিসি'][i % 4];
-      commutePill = `<span class="meta-pill">🚌 ${fmtDist(gr.length_m)}</span>
-                     <span class="meta-pill">⏱ ~${S.lang === 'bn' ? fmtNum('bn', busMin) : busMin} min</span>
+      commutePill = `<span class="meta-pill">${fmtDist(gr.length_m)}</span>
+                     <span class="meta-pill">~${S.lang === 'bn' ? fmtNum('bn', busMin) : busMin} min</span>
                      <span class="bus-tag">${lines}</span>
-                     <span class="meta-pill">৳ ${fareBus} ৳</span>`;
+                     <span class="meta-pill">${fareBus} ৳</span>`;
     } else if (S.commute === 'bike') {
       const bikeMin = Math.max(2, Math.round(distKm * 1.8 + 2));
       const bikeFare = Math.max(50, Math.round(distKm * 22 + 30));
-      commutePill = `<span class="meta-pill">🏍️ ${fmtDist(gr.length_m)}</span>
-                     <span class="meta-pill">⏱ ~${S.lang === 'bn' ? fmtNum('bn', bikeMin) : bikeMin} min</span>
-                     <span class="meta-pill">৳ ~${bikeFare} ৳ (Pathao/Uber)</span>`;
+      commutePill = `<span class="meta-pill">${fmtDist(gr.length_m)}</span>
+                     <span class="meta-pill">~${S.lang === 'bn' ? fmtNum('bn', bikeMin) : bikeMin} min</span>
+                     <span class="meta-pill">~${bikeFare} ৳ (Pathao/Uber)</span>`;
     } else if (S.commute === 'rickshaw') {
       if (gr.length_m < 3800) {
         const rMin = Math.max(3, Math.round(gr.length_m / 180));
         const fareMin = Math.max(30, Math.round(gr.length_m / 100) * 3);
         const fareMax = Math.max(50, Math.round(gr.length_m / 100) * 4.5);
-        commutePill = `<span class="meta-pill">🛺 ${fmtDist(gr.length_m)}</span>
-                       <span class="meta-pill">⏱ ~${S.lang === 'bn' ? fmtNum('bn', rMin) : rMin} min</span>
-                       <span class="meta-pill">৳ ${fareMin}-${fareMax} ৳</span>`;
+        commutePill = `<span class="meta-pill">${fmtDist(gr.length_m)}</span>
+                       <span class="meta-pill">~${S.lang === 'bn' ? fmtNum('bn', rMin) : rMin} min</span>
+                       <span class="meta-pill">${fareMin}-${fareMax} ৳</span>`;
       } else {
         const cMin = Math.max(8, Math.round(gr.length_m / 350));
         const cFare = Math.max(160, Math.round(gr.length_m / 100) * 4);
-        commutePill = `<span class="meta-pill">🛺 CNG: ~${S.lang === 'bn' ? fmtNum('bn', cMin) : cMin} min</span>
-                       <span class="meta-pill">৳ ${cFare} ৳ (মিটার/চুক্তি)</span>`;
+        commutePill = `<span class="meta-pill">CNG: ~${S.lang === 'bn' ? fmtNum('bn', cMin) : cMin} min</span>
+                       <span class="meta-pill">${cFare} ৳ (${S.lang === 'bn' ? 'মিটার/চুক্তি' : 'meter/contract'})</span>`;
       }
     } else {
       const steps = Math.round(gr.length_m * 1.35);
-      const kcal = Math.round(gr.length_m * 0.05);
-      commutePill = `<span class="meta-pill">🚶 ${fmtDist(gr.length_m)}</span>
-                     <span class="meta-pill">⏱ ${tr('route.min', { n: minutes(gr.length_m) })}</span>
-                     <span class="meta-pill">👟 ~${S.lang === 'bn' ? fmtNum('bn', steps) : steps} পা</span>`;
+      commutePill = `<span class="meta-pill">${fmtDist(gr.length_m)}</span>
+                     <span class="meta-pill">${tr('route.min', { n: minutes(gr.length_m) })}</span>
+                     <span class="meta-pill">~${S.lang === 'bn' ? fmtNum('bn', steps) : steps} ${S.lang === 'bn' ? 'পা' : 'steps'}</span>`;
     }
 
     // Safety Alert & Danger Trend Notification
@@ -165,19 +164,19 @@ function renderRoutes() {
     if (crossedHigh.length > 0 || hi >= 20) {
       const zoneNames = crossedHigh.map(z => S.lang === 'bn' && z.name_bn ? z.name_bn : z.name).join(', ');
       cautionNotice = `<div class="route-caution-banner cb-danger">
-        <span class="cb-ico">⚠️</span>
+        <svg class="cb-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
         <div class="cb-content">
           <div class="cb-title"><strong>${S.lang === 'bn' ? 'টিয়ার ১: উচ্চ বিপদ ঝুঁকি অঞ্চল স্পর্শ করছে!' : 'Tier 1: High Danger Trend Detected!'}</strong></div>
           <div class="cb-desc">${S.lang === 'bn' ? `এই রুটটি ${zoneNames || 'কম আলোকিত গলি'}-এর নির্জন বা ছিনতাই ঝুঁকিপূর্ণ এলাকা স্পর্শ করে। একা চলাচলের ক্ষেত্রে রুট ১ বেছে নেওয়ার পরামর্শ দেওয়া হচ্ছে।` : `Passes near ${zoneNames || 'poorly-lit alleys'}. Switching to Route 1 is advised.`}</div>
           ${i !== 0 ? `<button type="button" class="btn-switch-safer" data-target-route="0">
-            <span class="btn-ico">🛡️</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             <span>${tr('route.switch_safer')}</span>
           </button>` : ''}
         </div>
       </div>`;
     } else if (crossedZones.length > 0 || hi > 5) {
       cautionNotice = `<div class="route-caution-banner cb-warn">
-        <span class="cb-ico">🟡</span>
+        <svg class="cb-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         <div class="cb-content">
           <div class="cb-title"><strong>${S.lang === 'bn' ? 'টিয়ার ২: মাঝারি সতর্কতা জোন' : 'Tier 2: Moderate Caution Zone'}</strong></div>
           <div class="cb-desc">${S.lang === 'bn' ? 'প্রধান সড়ক ধরে চলুন। গণপরিবহন বা রাইডশেয়ারের জন্য অপেক্ষার সময় সতর্ক থাকুন।' : 'Stay alert along major well-lit sections.'}</div>
@@ -185,7 +184,7 @@ function renderRoutes() {
       </div>`;
     } else {
       cautionNotice = `<div class="route-caution-banner cb-safe">
-        <span class="cb-ico">🛡️</span>
+        <svg class="cb-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         <div class="cb-content">
           <div class="cb-title"><strong>${S.lang === 'bn' ? 'টিয়ার ৩: নিরাপদ ও যাচাইকৃত গ্রিন করিডোর' : 'Tier 3: Verified Safe Green Corridor'}</strong></div>
           <div class="cb-desc">${S.lang === 'bn' ? 'প্রধান আলোকিত এভিনিউ, সক্রিয় সিসিটিভি ক্যামেরা ও পুলিশ চেকপোস্ট সংলগ্ন। নারীদের জন্য সর্বোচ্চ নিরাপদ।' : 'Major illuminated avenue, CCTV surveillance & police presence.'}</div>
@@ -338,7 +337,11 @@ function drawCautionHeatmap() {
                                (S.lang === 'bn' ? 'নিরাপদ করিডোর' : 'Safe Corridor'));
     const badgePillCls = isHigh ? 'cp-badge-danger' : (isMod ? 'cp-badge-warn' : 'cp-badge-safe');
     const name = S.lang === 'bn' && z.name_bn ? z.name_bn : z.name;
-    const ico = isHigh ? '⚠️' : (isMod ? 'ℹ️' : '🛡️');
+    const ico = isHigh
+      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><line x1="12" y1="8" x2="12" y2="13"/><circle cx="12" cy="17" r="1" fill="#fff"/></svg>'
+      : (isMod
+          ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><circle cx="12" cy="7" r="1" fill="#fff"/><line x1="12" y1="11" x2="12" y2="17"/></svg>'
+          : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>');
 
     const circle = L.circle([z.lat, z.lon], {
       radius: z.r_m || 800,
@@ -368,7 +371,7 @@ function drawCautionHeatmap() {
         </div>
         <p class="cp-desc">${z.caution}</p>
         <div class="cp-tip ${!isHigh && !isMod ? 'tip-safe' : ''}">
-          <strong>${S.lang === 'bn' ? '💡 নিরাপত্তা পরামর্শ:' : '💡 Safety Tip:'}</strong> ${z.tip}
+          <strong>${S.lang === 'bn' ? 'নিরাপত্তা পরামর্শ:' : 'Safety Tip:'}</strong> ${z.tip}
         </div>
       </div>
     `;
@@ -391,7 +394,7 @@ function drawMetroStations() {
     const marker = L.marker([lat, lon], {
       icon: L.divIcon({
         className: 'metro-div-icon',
-        html: `<div class="metro-marker" title="${name}">🚇</div>`,
+        html: `<div class="metro-marker" title="${name}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="15" rx="2"/><line x1="4" y1="11" x2="20" y2="11"/><circle cx="8" cy="15" r="1"/><circle cx="16" cy="15" r="1"/><path d="m5 18-2 3"/><path d="m19 18 2 3"/></svg></div>`,
         iconSize: [28, 28],
         iconAnchor: [14, 14],
       }),
@@ -401,14 +404,14 @@ function drawMetroStations() {
     const popupHtml = `
       <div class="mp-card">
         <div class="mp-header">
-          <span style="font-size:18px;">🚇</span>
+          <span class="mp-icon" style="display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg, #0284c7, #0369a1); color:#fff;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="15" rx="2"/><line x1="4" y1="11" x2="20" y2="11"/><circle cx="8" cy="15" r="1"/><circle cx="16" cy="15" r="1"/><path d="m5 18-2 3"/><path d="m19 18 2 3"/></svg></span>
           <div>
             <h4 class="mp-title">${name}</h4>
             <span class="mp-tag">${S.lang === 'bn' ? 'মেট্রোরেল লাইন ৬ স্টেশন' : 'MRT Line-6 Station'}</span>
           </div>
         </div>
         <div class="mp-details">
-          ${S.lang === 'bn' ? '🛡️ ডেডিকেটেড নারী কামরা, সিসিটিভি নজরদারি ও সার্বক্ষণিক নিরাপত্তা কর্মী বিদ্যমান।' : '🛡️ Dedicated Women\'s Coach, CCTV surveillance & security personnel.'}
+          ${S.lang === 'bn' ? 'ডেডিকেটেড নারী কামরা, সিসিটিভি নজরদারি ও সার্বক্ষণিক নিরাপত্তা কর্মী বিদ্যমান।' : 'Dedicated Women\'s Coach, CCTV surveillance & security personnel.'}
         </div>
         <button type="button" class="btn-route-to" data-st-lon="${lon}" data-st-lat="${lat}" data-st-name="${name}">
           <span>${S.lang === 'bn' ? 'এখানে নিরাপদ পথ দেখুন' : 'Get Safe Route Here'}</span>
@@ -499,9 +502,9 @@ function drawTraffic() {
           <strong>${name}</strong>
         </div>
         <div class="tf-meta">
-          <span>🚦 <strong>${statusText}</strong></span>
-          <span>⚡ গতি: ~${S.lang === 'bn' ? fmtNum('bn', c.speed) : c.speed} km/h</span>
-          ${c.delay > 0 ? `<span class="tf-delay">⏱ +${S.lang === 'bn' ? fmtNum('bn', c.delay) : c.delay} min ${S.lang === 'bn' ? 'বিলম্ব' : 'delay'}</span>` : ''}
+          <span><strong>${statusText}</strong></span>
+          <span>${S.lang === 'bn' ? 'গতি' : 'Speed'}: ~${S.lang === 'bn' ? fmtNum('bn', c.speed) : c.speed} km/h</span>
+          ${c.delay > 0 ? `<span class="tf-delay">+${S.lang === 'bn' ? fmtNum('bn', c.delay) : c.delay} min ${S.lang === 'bn' ? 'বিলম্ব' : 'delay'}</span>` : ''}
         </div>
       </div>
     `;
@@ -734,7 +737,7 @@ function shareRouteSummary(gr) {
   const dist = targetGr ? fmtDist(targetGr.length_m) : '';
   const time = targetGr ? tr('route.min', { n: minutes(targetGr.length_m) }) : '';
   const score = targetGr ? Math.max(20, Math.min(99, Math.round((1 - targetGr.mean_risk) * 100))) : 85;
-  const text = `🛡️ পথিকা নিরাপদ পথ (Pothika Safe Routes):\n📍 শুরু (From): ${oName}\n🏁 গন্তব্য (To): ${dName}\n🚶 দূরত্ব: ${dist} (~${time})\n🛡️ নিরাপত্তা স্কোর: ${score}%\n\nঢাকার রাস্তায় নারীদের নিরাপদ চলাচলের জন্য পথিকা (Pothika) ব্যবহার করছি।`;
+  const text = `${S.lang === 'bn' ? 'পথিকা নিরাপদ পথ' : 'Pothika Safe Routes'}:\n${S.lang === 'bn' ? 'শুরু' : 'From'}: ${oName}\n${S.lang === 'bn' ? 'গন্তব্য' : 'To'}: ${dName}\n${S.lang === 'bn' ? 'দূরত্ব' : 'Distance'}: ${dist} (~${time})\n${S.lang === 'bn' ? 'নিরাপত্তা স্কোর' : 'Safety Score'}: ${score}%\n\n${S.lang === 'bn' ? 'ঢাকার রাস্তায় নারীদের নিরাপদ চলাচলের জন্য পথিকা (Pothika) ব্যবহার করছি।' : 'Using Pothika Safe Routes for secure women navigation in Dhaka.'}`;
 
   if (navigator.share) {
     navigator.share({ title: 'Pothika Safe Walking Route', text }).catch(() => {});
@@ -758,7 +761,7 @@ function startSafeWalk(gr) {
     hud.hidden = false;
     const details = $('#walk-hud-details');
     if (details) {
-      details.textContent = `${oName} ➔ ${dName} • ${fmtDist(g.length_m)} (~${tr('route.min', { n: minutes(g.length_m) })})`;
+      details.textContent = `${oName} → ${dName} • ${fmtDist(g.length_m)} (~${tr('route.min', { n: minutes(g.length_m) })})`;
     }
     $('#sheet').classList.add('collapsed');
     toast(tr('nav.live_heading'));
@@ -823,11 +826,11 @@ function bind() {
       S.commute = tab.dataset.commute;
       renderRoutes();
       const modeNames = {
-        drive: S.lang === 'bn' ? '🚗 গাড়ি (Drive)' : '🚗 Drive (Car)',
-        bus: S.lang === 'bn' ? '🚌 বাস ও গণপরিবহন' : '🚌 Bus & Transit',
-        bike: S.lang === 'bn' ? '🏍️ বাইক / রাইড' : '🏍️ Bike / Ride',
-        rickshaw: S.lang === 'bn' ? '🛺 রিকশা / সিএনজি' : '🛺 Rickshaw / CNG',
-        walk: S.lang === 'bn' ? '🚶 হাঁটা (Walk)' : '🚶 Walk',
+        drive: S.lang === 'bn' ? 'গাড়ি (Drive)' : 'Drive (Car)',
+        bus: S.lang === 'bn' ? 'বাস ও গণপরিবহন' : 'Bus & Transit',
+        bike: S.lang === 'bn' ? 'বাইক / রাইড' : 'Bike / Ride',
+        rickshaw: S.lang === 'bn' ? 'রিকশা / সিএনজি' : 'Rickshaw / CNG',
+        walk: S.lang === 'bn' ? 'হাঁটা (Walk)' : 'Walk',
       };
       toast(modeNames[S.commute] || S.commute);
     });
@@ -842,7 +845,7 @@ function bind() {
       fabTraffic.classList.toggle('is-active', next);
       const chk = $('#ly-traffic');
       if (chk) chk.checked = next;
-      toast(next ? (S.lang === 'bn' ? 'লাইভ ট্রাফিক লেয়ার সক্রিয় 🚦' : 'Live Traffic Flow Activated 🚦') : (S.lang === 'bn' ? 'ট্রাফিক লেয়ার বন্ধ' : 'Traffic Layer Disabled'));
+      toast(next ? (S.lang === 'bn' ? 'লাইভ ট্রাফিক লেয়ার সক্রিয়' : 'Live Traffic Flow Activated') : (S.lang === 'bn' ? 'ট্রাফিক লেয়ার বন্ধ' : 'Traffic Layer Disabled'));
     });
   }
 
@@ -953,7 +956,7 @@ function bind() {
     if (sw) {
       S.selected = 0;
       drawRoutes(); renderRoutes(); fitRoutes();
-      toast(S.lang === 'bn' ? 'নিরাপদ রুট ১ নির্বাচিত হয়েছে 🛡️' : 'Switched to Safest Route 1 🛡️');
+      toast(S.lang === 'bn' ? 'নিরাপদ রুট ১ নির্বাচিত হয়েছে' : 'Switched to Safest Route 1');
       return;
     }
     const wb = ev.target.closest('[data-walk-idx]');

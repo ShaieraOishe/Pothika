@@ -107,23 +107,23 @@
     <!-- Floating Map Quick Action Buttons (Right Side) -->
     <div class="map-floating-actions">
       <button id="fab-sos" class="fab-btn fab-sos" type="button" title="জরুরি SOS (৯৯৯ / ১০৯)">
-        <span class="fab-ico">🚨</span>
-        <span class="fab-label">SOS</span>
+        <span class="fab-badge-text">SOS</span>
+        <span class="fab-label">জরুরি</span>
       </button>
       <button id="fab-traffic" class="fab-btn is-active" type="button" title="লাইভ ট্রাফিক (Live Traffic)">
-        <span class="fab-ico">🚦</span>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><circle cx="12" cy="7" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="17" r="2"/></svg>
         <span class="fab-label">ট্রাফিক</span>
       </button>
       <button id="fab-heatmap" class="fab-btn is-active" type="button" title="বিপদ প্রবণতা ও সতর্কতা ম্যাপ">
-        <span class="fab-ico">🔥</span>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
         <span class="fab-label">বিপদ ট্রেন্ড</span>
       </button>
       <button id="fab-metro" class="fab-btn" type="button" title="মেট্রোরেল স্টেশন (MRT-6)">
-        <span class="fab-ico">🚇</span>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="15" rx="2"/><line x1="4" y1="11" x2="20" y2="11"/><circle cx="8" cy="15" r="1"/><circle cx="16" cy="15" r="1"/><path d="M7 21l2-3M17 21l-2-3"/></svg>
         <span class="fab-label">মেট্রো</span>
       </button>
       <button id="fab-loc" class="fab-btn" type="button" title="আমার বর্তমান অবস্থান">
-        <span class="fab-ico">📍</span>
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="20" y1="12" x2="22" y2="12"/><line x1="2" y1="12" x2="4" y2="12"/></svg>
         <span class="fab-label">লোকেশন</span>
       </button>
     </div>
@@ -142,15 +142,12 @@
       </div>
       <div class="walk-hud-bottom">
         <button id="btn-hud-sos" type="button" class="hud-tool-btn hud-btn-sos">
-          <span class="hud-tool-ico">🚨</span>
           <span>জরুরি SOS</span>
         </button>
         <button id="btn-hud-fakecall" type="button" class="hud-tool-btn">
-          <span class="hud-tool-ico">📞</span>
           <span data-i18n="nav.fake_call">ফেক কল</span>
         </button>
         <button id="btn-hud-share" type="button" class="hud-tool-btn">
-          <span class="hud-tool-ico">📍</span>
           <span>লাইভ ট্রিপ শেয়ার</span>
         </button>
       </div>
@@ -173,32 +170,26 @@
             </div>
             <div class="explore-cards">
               <button type="button" class="explore-card" data-dest-name="Dhanmondi Road 27" data-dest-label="ধানমন্ডি ২৭ / লেক" data-start-name="Shahbag Road">
-                <span class="explore-ico">🌸</span>
                 <span class="explore-name">ধানমন্ডি লেক</span>
                 <span class="explore-tag">নিরাপদ জোন</span>
               </button>
               <button type="button" class="explore-card" data-dest-name="Shahbag Road" data-dest-label="টিএসসি, ঢাবি" data-start-name="Dhanmondi Road 27">
-                <span class="explore-ico">🎓</span>
                 <span class="explore-name">টিএসসি / ঢাবি</span>
                 <span class="explore-tag">শাহবাগ</span>
               </button>
               <button type="button" class="explore-card" data-dest-name="Panthapath" data-dest-label="বসুন্ধরা সিটি, পান্থপথ" data-start-name="Dhanmondi Road 27">
-                <span class="explore-ico">🛍️</span>
                 <span class="explore-name">বসুন্ধরা সিটি</span>
                 <span class="explore-tag">পান্থপথ</span>
               </button>
               <button type="button" class="explore-card" data-dest-name="Gulshan Avenue" data-dest-label="গুলশান ২ সার্কেল" data-start-name="Banani Road 11">
-                <span class="explore-ico">🏢</span>
                 <span class="explore-name">গুলশান ২</span>
                 <span class="explore-tag">আলোকিত এভিনিউ</span>
               </button>
               <button type="button" class="explore-card" data-dest-name="Mirpur Road" data-dest-label="মিরপুর ১০ মেট্রো" data-start-name="Panthapath">
-                <span class="explore-ico">🚇</span>
                 <span class="explore-name">মিরপুর ১০</span>
                 <span class="explore-tag">মেট্রো করিডোর</span>
               </button>
               <button type="button" class="explore-card" data-dest-name="Uttara Sector Road" data-dest-label="উত্তরা সেক্টর ৩" data-start-name="Airport Road">
-                <span class="explore-ico">✈️</span>
                 <span class="explore-name">উত্তরা ৩</span>
                 <span class="explore-tag">আবাসিক জোন</span>
               </button>
@@ -254,23 +245,18 @@
           <!-- Commute Mode Switcher (Google & Apple Maps 5-Mode System) -->
           <div class="commute-modes-bar" role="tablist">
             <button type="button" class="mode-tab is-active" data-commute="drive" role="tab" aria-selected="true">
-              <span class="mode-ico">🚗</span>
               <span class="mode-text" data-i18n="commute.drive">গাড়ি (Drive)</span>
             </button>
             <button type="button" class="mode-tab" data-commute="bus" role="tab" aria-selected="false">
-              <span class="mode-ico">🚌</span>
               <span class="mode-text" data-i18n="commute.bus">বাস (Bus)</span>
             </button>
             <button type="button" class="mode-tab" data-commute="bike" role="tab" aria-selected="false">
-              <span class="mode-ico">🏍️</span>
               <span class="mode-text" data-i18n="commute.bike">বাইক (Bike)</span>
             </button>
             <button type="button" class="mode-tab" data-commute="rickshaw" role="tab" aria-selected="false">
-              <span class="mode-ico">🛺</span>
               <span class="mode-text" data-i18n="commute.rickshaw">রিকশা / সিএনজি</span>
             </button>
             <button type="button" class="mode-tab" data-commute="walk" role="tab" aria-selected="false">
-              <span class="mode-ico">🚶</span>
               <span class="mode-text" data-i18n="commute.walk">হাঁটা (Walk)</span>
             </button>
           </div>
@@ -386,7 +372,6 @@
               <label class="check">
                 <input type="checkbox" id="ly-traffic" checked>
                 <span class="check-custom"></span>
-                <span class="check-ico">🚦</span>
                 <span data-i18n="traffic.title">লাইভ ট্রাফিক অবস্থা (Live Traffic Flow)</span>
               </label>
               <div id="traffic-legend" class="traffic-legend-bar" aria-hidden="true">
@@ -397,13 +382,11 @@
               <label class="check">
                 <input type="checkbox" id="ly-caution-heatmap" checked>
                 <span class="check-custom"></span>
-                <span class="check-ico">🔥</span>
                 <span data-i18n="heatmap.title">বিপদ প্রবণতা হিটম্যাপ (Danger Trends)</span>
               </label>
               <label class="check">
                 <input type="checkbox" id="ly-metro" checked>
                 <span class="check-custom"></span>
-                <span class="check-ico">🚇</span>
                 <span data-i18n="commute.metro">মেট্রোরেল স্টেশন (MRT-6)</span>
               </label>
               <label class="check">
@@ -512,7 +495,6 @@
       <a href="tel:999" class="sos-card sos-card-emergency">
         <div class="sos-card-header">
           <span class="sos-badge">২৪ ঘণ্টা জাতীয় হেল্পলাইন</span>
-          <span class="sos-call-ico">📞</span>
         </div>
         <div class="sos-number">৯৯৯ (999)</div>
         <div class="sos-name">জাতীয় জরুরি সেবা (পুলিশ, অ্যাম্বুলেন্স, ফায়ার)</div>
@@ -521,7 +503,6 @@
       <a href="tel:109" class="sos-card sos-card-women">
         <div class="sos-card-header">
           <span class="sos-badge">টোল-ফ্রি ২৪/৭</span>
-          <span class="sos-call-ico">📞</span>
         </div>
         <div class="sos-number">১০৯ (109)</div>
         <div class="sos-name">নারী ও শিশু নির্যাতন প্রতিরোধ হেল্পলাইন</div>
@@ -530,7 +511,6 @@
       <a href="tel:10921" class="sos-card sos-card-support">
         <div class="sos-card-header">
           <span class="sos-badge">সহায়তা সেল</span>
-          <span class="sos-call-ico">📞</span>
         </div>
         <div class="sos-number">১০৯২১ (10921)</div>
         <div class="sos-name">নারী নির্যাতন প্রতিরোধ বিশেষ সেল</div>
@@ -557,17 +537,15 @@
 <dialog id="dlg-fake-call" aria-label="Incoming Call">
   <div class="fake-call-card">
     <div class="fake-call-header">
-      <div class="fake-call-avatar">👩</div>
+      <div class="fake-call-avatar">M</div>
       <div class="fake-call-name" data-i18n="nav.fake_caller">আম্মু (Mom)</div>
       <div class="fake-call-status" id="fake-call-status" data-i18n="nav.fake_ringing">ইনকামিং কল আসছে...</div>
     </div>
     <div class="fake-call-actions" id="fake-call-actions">
       <button type="button" id="btn-call-decline" class="fake-call-btn btn-call-red">
-        <span class="call-btn-ico">✕</span>
         <span data-i18n="nav.fake_decline">কেটে দিন</span>
       </button>
       <button type="button" id="btn-call-accept" class="fake-call-btn btn-call-green">
-        <span class="call-btn-ico">📞</span>
         <span data-i18n="nav.fake_accept">কল ধরুন</span>
       </button>
     </div>
@@ -578,7 +556,6 @@
       </div>
       <p class="fake-call-instruction">“হ্যাঁ আম্মু, আমি মেইন রোডের কাছেই আছি, ৫ মিনিটের মধ্যে চলে আসছি...”</p>
       <button type="button" id="btn-call-hangup" class="fake-call-btn btn-call-red" style="margin:16px auto 0">
-        <span class="call-btn-ico">✕</span>
         <span>কল শেষ করুন</span>
       </button>
     </div>
@@ -602,6 +579,6 @@
 <noscript><p style="padding:16px">এই অ্যাপ চালাতে JavaScript দরকার। This app needs JavaScript.</p></noscript>
 
 <script src="vendor/leaflet/leaflet.js"></script>
-<script type="module" src="js/app.js?v=12"></script>
+<script type="module" src="js/app.js?v=13"></script>
 </body>
 </html>

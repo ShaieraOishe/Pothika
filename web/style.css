@@ -1133,11 +1133,6 @@ button { -webkit-tap-highlight-color: transparent; }
   gap: 6px;
 }
 
-.why::before {
-  content: "🛡️";
-  font-size: 14px;
-}
-
 .reasons {
   margin: 0;
   padding: 0;
